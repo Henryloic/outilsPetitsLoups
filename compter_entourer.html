@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche – Compter et entourer</title>
+<style>
+  /* ============================================================
+     STYLES GÉNÉRAUX (écran)
+     ============================================================ */
+  :root{
+    --bleu:#2563eb;
+    --gris:#f1f5f9;
+    --bord:#cbd5e1;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Arial,sans-serif;
+    background:#e2e8f0;
+    color:#0f172a;
+    display:flex;
+    gap:20px;
+    padding:20px;
+    align-items:flex-start;
+  }
+
+  /* -------- Panneau de commandes (masqué à l'impression) -------- */
+  .controls{
+    flex:0 0 330px;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 4px 18px rgba(0,0,0,.08);
+    padding:22px;
+    position:sticky;
+    top:20px;
+  }
+  .controls h1{font-size:20px;margin:0 0 4px;}
+  .controls p.sub{margin:0 0 18px;color:#64748b;font-size:13px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-weight:600;font-size:13px;margin-bottom:6px;}
+  .field input[type=file]{
+    width:100%;padding:8px;border:1px solid var(--bord);
+    border-radius:8px;font-size:13px;background:#fff;
+  }
+  .status{font-size:12px;margin-top:6px;font-weight:600;}
+  .ok{color:#16a34a;}
+  .ko{color:#dc2626;}
+  .buttons{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .buttons button{
+    padding:11px;border:none;border-radius:9px;font-size:14px;
+    font-weight:600;cursor:pointer;color:#fff;transition:.15s;
+  }
+  #btnGen{background:var(--bleu);}
+  #btnRegen{background:#0891b2;}
+  #btnPrint{background:#16a34a;}
+  .buttons button:hover{filter:brightness(1.08);}
+  .buttons button:disabled{background:#94a3b8;cursor:not-allowed;}
+  .hint{font-size:12px;color:#64748b;margin-top:14px;line-height:1.4;}
+  /* Sliders */
+  .slider-row{display:flex;align-items:center;gap:10px;}
+  .slider-row input[type=range]{flex:1;accent-color:var(--bleu);}
+  .slider-row .val{font-weight:700;color:var(--bleu);min-width:28px;text-align:right;font-size:14px;}
+
+  /* ============================================================
+     LA FICHE A4
+     ============================================================ */
+  .preview{flex:1;display:flex;justify-content:center;}
+  .sheet{
+    width:210mm;
+    height:297mm;
+    background:#fff;
+    box-shadow:0 6px 24px rgba(0,0,0,.15);
+    padding:10mm;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  /* En-tête : consigne */
+  .sheet-header{
+    width:100%;
+    min-height:16mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+  #sheetConsigne{
+    font-size:6.5mm;
+    font-weight:700;
+    line-height:1.15;
+    max-width:185mm;
+  }
+  /* Zone des lignes : répartie sur toute la hauteur disponible */
+  #rows{
+    width:100%;
+    flex:1;                       /* occupe tout l'espace entre consigne et pied */
+    display:flex;
+    flex-direction:column;
+    justify-content:space-around; /* répartition harmonieuse sur la hauteur */
+  }
+  .row{
+    display:flex;
+    align-items:center;
+  }
+  .target{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:0.5mm solid #111;
+    border-radius:2mm;
+    background:#fff;
+    font-weight:800;
+    line-height:1;
+  }
+  .target img{width:100%;height:100%;object-fit:contain;padding:1.2mm;}
+  .sep{flex:0 0 auto;}
+  .list{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between; /* images espacées régulièrement */
+  }
+  .list img{object-fit:contain;}
+  .placeholder{
+    color:#94a3b8;font-size:15px;text-align:center;margin:auto;padding:0 20mm;
+  }
+  /* Pied de page de la fiche */
+  .sheet-footer{
+    flex:0 0 auto;
+    padding-top:3mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:3mm;
+    font-size:5mm;
+    font-weight:600;
+    color:#475569;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+  }
+  .sheet-footer svg{flex:0 0 auto;}
+
+  /* ============================================================
+     IMPRESSION : on masque tout sauf la fiche
+     ============================================================ */
+  @media print{
+    @page{ size:A4 portrait; margin:0; }
+    body{background:#fff;padding:0;display:block;}
+    .controls{display:none !important;}
+    .preview{display:block;}
+    .sheet{
+      box-shadow:none;
+      width:210mm;height:297mm;
+      page-break-after:avoid;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ================= PANNEAU DE COMMANDES ================= -->
+  <aside class="controls">
+    <h1>🔢 Compter et entourer</h1>
+    <p class="sub">Fiche de dénombrement : chiffres, dés et mains.</p>
+
+    <div class="field">
+      <label for="folderIcons">1. Dossier des icônes (dés &amp; mains)</label>
+      <input type="file" id="folderIcons" webkitdirectory directory multiple accept="image/*">
+      <div class="status" id="statIcons">Aucun dossier chargé.</div>
+      <p class="hint" style="margin-top:6px;">
+        Fichiers nommés <b>dé1…dé6</b> et <b>main1…main5</b> (le nom donne la valeur).
+      </p>
+    </div>
+
+    <div class="field">
+      <label for="folderTheme">2. Dossier des images (thème)</label>
+      <input type="file" id="folderTheme" webkitdirectory directory multiple accept="image/*">
+      <div class="status" id="statTheme">Aucun dossier chargé.</div>
+      <p class="hint" style="margin-top:6px;">
+        Une image différente par ligne (réutilisées au hasard si peu d'images).
+      </p>
+    </div>
+
+    <div class="field">
+      <label for="rowsSlider">3. Nombre de lignes</label>
+      <div class="slider-row">
+        <input type="range" id="rowsSlider" min="5" max="7" step="1" value="6">
+        <span class="val" id="rowsVal">6</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="imgSlider">4. Nombre d'images par ligne</label>
+      <div class="slider-row">
+        <input type="range" id="imgSlider" min="6" max="10" step="1" value="8">
+        <span class="val" id="imgVal">8</span>
+      </div>
+      <p class="hint" style="margin-top:6px;">
+        La cible ne dépasse jamais ce nombre (cohérence : on ne peut pas entourer
+        « 9 » dans une liste de 8).
+      </p>
+    </div>
+
+    <div class="buttons">
+      <button id="btnGen">Générer</button>
+      <button id="btnRegen">Régénérer</button>
+      <button id="btnPrint">Imprimer</button>
+    </div>
+
+    <p class="hint">Astuce : « Régénérer » recalcule de nouvelles cibles et images. L'impression masque automatiquement ce panneau.</p>
+  </aside>
+
+  <!-- ================= APERÇU DE LA FICHE A4 ================= -->
+  <main class="preview">
+    <section class="sheet" id="sheet">
+      <div class="sheet-header">
+        <div id="sheetConsigne">Consigne : Entoure le nombre de dessin demandé.</div>
+      </div>
+
+      <div id="rows"><div class="placeholder">Chargez les deux dossiers, puis cliquez sur « Générer ».</div></div>
+
+      <!-- Pied de page de la fiche -->
+      <footer class="sheet-footer">
+        <svg viewBox="0 0 64 64" width="10mm" height="10mm" aria-hidden="true">
+          <!-- Petit loup "sympa" : oreilles, tête grise, museau, yeux, nez -->
+          <polygon points="10,10 22,24 6,26" fill="#94a3b8"/>
+          <polygon points="54,10 42,24 58,26" fill="#94a3b8"/>
+          <polygon points="13,13 21,23 10,24" fill="#e2e8f0"/>
+          <polygon points="51,13 43,23 54,24" fill="#e2e8f0"/>
+          <circle cx="32" cy="34" r="20" fill="#cbd5e1"/>
+          <ellipse cx="32" cy="42" rx="12" ry="10" fill="#f8fafc"/>
+          <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="25" cy="30" r="1" fill="#fff"/>
+          <circle cx="41" cy="30" r="1" fill="#fff"/>
+          <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
+          <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span>Classe des petits loups&nbsp;— Florence Zeghache</span>
+      </footer>
+    </section>
+  </main>
+
+<script>
+"use strict";
+
+/* ============================================================
+   CONSTANTES / BORNES
+   ============================================================ */
+const DE_MAX   = 6;   // un dé va de 1 à 6
+const MAIN_MAX = 5;   // une main va de 1 à 5
+const CHIF_MAX = 10;  // un chiffre écrit va de 1 à 10
+
+/* Données chargées */
+const iconMap = { de:{}, main:{} };   // ex. iconMap.de[4] = dataURL, iconMap.main[3] = dataURL
+let themeImgs = [];                   // tableau de dataURL (images du thème)
+
+/* Dernière fiche générée (pour re-rendu au resize éventuel) */
+let lastRows = null;
+
+/* ============================================================
+   UTILITAIRES
+   ============================================================ */
+const randInt = n => Math.floor(Math.random() * n);
+const pick    = arr => arr[randInt(arr.length)];
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=randInt(i+1); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+// Enlève les accents et met en minuscules (pour lire "dé", "Dé", "de"…)
+function norm(s){
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+}
+// Lit un fichier image en dataURL
+function readImage(file){
+  return new Promise(resolve => {
+    const r = new FileReader();
+    r.onload = e => resolve(e.target.result);
+    r.readAsDataURL(file);
+  });
+}
+
+/* ============================================================
+   CHARGEMENT DU DOSSIER D'ICÔNES (dés & mains)
+   Le nom du fichier donne le type et la valeur : dé4 -> de/4, main3 -> main/3
+   ============================================================ */
+document.getElementById("folderIcons").addEventListener("change", async e => {
+  iconMap.de = {}; iconMap.main = {};
+  const files = [...e.target.files].filter(f => f.type.startsWith("image/"));
+  for(const f of files){
+    const base = f.name.replace(/\.[^.]+$/,"");     // retire l'extension
+    const m = norm(base).match(/(de|main)[\s_-]*(\d+)/);
+    if(!m) continue;
+    const type = m[1];                               // "de" ou "main"
+    const val  = parseInt(m[2],10);
+    const url  = await readImage(f);
+    iconMap[type][val] = url;
+  }
+  const nDe = Object.keys(iconMap.de).length;
+  const nMain = Object.keys(iconMap.main).length;
+  const el = document.getElementById("statIcons");
+  if(nDe + nMain === 0){
+    el.className = "status ko";
+    el.textContent = "⚠️ Aucun fichier reconnu (attendus : dé1…, main1…).";
+  }else{
+    el.className = "status ok";
+    el.textContent = `✅ ${nDe} dé(s) et ${nMain} main(s) chargés.`;
+  }
+});
+
+/* ============================================================
+   CHARGEMENT DU DOSSIER DU THÈME
+   ============================================================ */
+document.getElementById("folderTheme").addEventListener("change", async e => {
+  themeImgs = [];
+  const files = [...e.target.files].filter(f => f.type.startsWith("image/"));
+  for(const f of files){
+    themeImgs.push(await readImage(f));
+  }
+  const el = document.getElementById("statTheme");
+  if(themeImgs.length === 0){
+    el.className = "status ko";
+    el.textContent = "⚠️ Aucune image trouvée dans ce dossier.";
+  }else{
+    el.className = "status ok";
+    el.textContent = `✅ ${themeImgs.length} image(s) de thème chargée(s).`;
+  }
+});
+
+/* ============================================================
+   TIRAGE D'UNE CIBLE POUR UNE LIGNE
+   Types possibles selon les icônes chargées + plafond = imagesParLigne.
+   Renvoie {type, value, url|null}
+   ============================================================ */
+function tirerCible(maxImages){
+  const types = ["chiffre"]; // le chiffre écrit est toujours disponible
+  if(Object.keys(iconMap.de).length)   types.push("de");
+  if(Object.keys(iconMap.main).length) types.push("main");
+
+  // On mélange et on tente chaque type jusqu'à en trouver un exploitable
+  for(const type of shuffle(types)){
+    if(type === "chiffre"){
+      const max = Math.min(CHIF_MAX, maxImages);
+      const v = 1 + randInt(max);                    // 1..max
+      return { type, value:v, url:null };
+    }
+    if(type === "de"){
+      const dispo = Object.keys(iconMap.de).map(Number)
+                    .filter(v => v <= Math.min(DE_MAX, maxImages));
+      if(dispo.length){ const v = pick(dispo); return { type, value:v, url:iconMap.de[v] }; }
+    }
+    if(type === "main"){
+      const dispo = Object.keys(iconMap.main).map(Number)
+                    .filter(v => v <= Math.min(MAIN_MAX, maxImages));
+      if(dispo.length){ const v = pick(dispo); return { type, value:v, url:iconMap.main[v] }; }
+    }
+  }
+  // Repli : chiffre garanti
+  const max = Math.min(CHIF_MAX, maxImages);
+  return { type:"chiffre", value:1+randInt(max), url:null };
+}
+
+/* ============================================================
+   CALCUL DES DIMENSIONS (taille identique + tenue sur 1 page)
+   ============================================================ */
+function computeBox(nbRows, nbImg){
+  // Zone utile intérieure : 190 x 277 mm (padding 10mm déjà retiré par .sheet)
+  const usableW = 190;
+  // Hauteur réservée : consigne (~16) + pied (~16) = 32mm
+  const rowsAreaH = 277 - 32;
+  const perRowH = rowsAreaH / nbRows;
+
+  // Contrainte hauteur : la case tient dans la hauteur de ligne (marge 15%)
+  const boxByH = perRowH * 0.82;
+
+  // Contrainte largeur : cible + séparateur + nbImg images
+  const gapBig = 8;   // écart cible ↔ liste (mm)
+  // largeur dispo pour (1 cible + nbImg images), espaces gérés par space-between
+  const boxByW = (usableW - gapBig) / (1 + nbImg) - 1.5;
+
+  return Math.max(6, Math.min(boxByH, boxByW)); // au moins 6mm
+}
+
+/* ============================================================
+   RENDU DE LA FICHE
+   ============================================================ */
+function renderSheet(rowsData, nbImg){
+  const box = computeBox(rowsData.length, nbImg);
+  const rowsEl = document.getElementById("rows");
+  rowsEl.innerHTML = "";
+
+  for(const cible of rowsData){
+    const row = document.createElement("div");
+    row.className = "row";
+
+    /* --- Cible (gauche) --- */
+    const t = document.createElement("div");
+    t.className = "target";
+    t.style.width  = box + "mm";
+    t.style.height = box + "mm";
+    if(cible.type === "chiffre"){
+      t.textContent = cible.value;
+      t.style.fontSize = (box * 0.6) + "mm";
+    }else{
+      const img = document.createElement("img");
+      img.src = cible.url;
+      img.alt = cible.type + cible.value;
+      t.appendChild(img);
+    }
+    row.appendChild(t);
+
+    /* --- Séparateur --- */
+    const sep = document.createElement("div");
+    sep.className = "sep";
+    sep.style.width = "8mm";
+    row.appendChild(sep);
+
+    /* --- Liste (droite) : même image du thème répétée nbImg fois --- */
+    const list = document.createElement("div");
+    list.className = "list";
+    list.style.height = box + "mm";
+    for(let i=0;i<nbImg;i++){
+      const im = document.createElement("img");
+      im.src = cible.themeUrl;
+      im.style.width  = box + "mm";
+      im.style.height = box + "mm";
+      list.appendChild(im);
+    }
+    row.appendChild(list);
+
+    rowsEl.appendChild(row);
+  }
+}
+
+/* ============================================================
+   GÉNÉRATION PRINCIPALE
+   ============================================================ */
+function generate(){
+  if(themeImgs.length === 0){
+    alert("Veuillez d'abord charger le dossier des images du thème (étape 2).");
+    return;
+  }
+  const nbRows = parseInt(document.getElementById("rowsSlider").value,10);
+  const nbImg  = parseInt(document.getElementById("imgSlider").value,10);
+
+  // Une image de thème DIFFÉRENTE par ligne (réutilisation au hasard si trop peu)
+  let pool = shuffle(themeImgs);
+  const themeForRow = [];
+  for(let r=0;r<nbRows;r++){
+    if(pool.length === 0) pool = shuffle(themeImgs);   // on recharge le pool
+    themeForRow.push(pool.pop());
+  }
+
+  // Construit les lignes
+  const rowsData = [];
+  for(let r=0;r<nbRows;r++){
+    const cible = tirerCible(nbImg);
+    cible.themeUrl = themeForRow[r];
+    rowsData.push(cible);
+  }
+
+  lastRows = { rowsData, nbImg };
+  renderSheet(rowsData, nbImg);
+}
+
+/* ============================================================
+   SLIDERS (affichage des valeurs)
+   ============================================================ */
+const rowsSlider = document.getElementById("rowsSlider");
+rowsSlider.addEventListener("input", () => {
+  document.getElementById("rowsVal").textContent = rowsSlider.value;
+});
+const imgSlider = document.getElementById("imgSlider");
+imgSlider.addEventListener("input", () => {
+  document.getElementById("imgVal").textContent = imgSlider.value;
+});
+
+/* ============================================================
+   BOUTONS
+   ============================================================ */
+document.getElementById("btnGen").addEventListener("click", generate);
+document.getElementById("btnRegen").addEventListener("click", generate);
+document.getElementById("btnPrint").addEventListener("click", () => window.print());
+</script>
+</body>
+</html>

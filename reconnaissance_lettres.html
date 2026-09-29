@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche – Reconnaissance des lettres</title>
+<style>
+  /* ============================================================
+     STYLES GÉNÉRAUX (écran)
+     ============================================================ */
+  :root{
+    --bleu:#2563eb;
+    --gris:#f1f5f9;
+    --bord:#cbd5e1;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Arial,sans-serif;
+    background:#e2e8f0;
+    color:#0f172a;
+    display:flex;
+    gap:20px;
+    padding:20px;
+    align-items:flex-start;
+  }
+
+  /* -------- Panneau de commandes (masqué à l'impression) -------- */
+  .controls{
+    flex:0 0 320px;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 4px 18px rgba(0,0,0,.08);
+    padding:22px;
+    position:sticky;
+    top:20px;
+  }
+  .controls h1{font-size:20px;margin:0 0 4px;}
+  .controls p.sub{margin:0 0 18px;color:#64748b;font-size:13px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-weight:600;font-size:13px;margin-bottom:6px;}
+  .field select,.field input[type=text]{
+    width:100%;padding:8px;border:1px solid var(--bord);
+    border-radius:8px;font-size:14px;background:#fff;
+  }
+  .radio-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .radio-row label{
+    display:flex;align-items:center;gap:6px;font-weight:500;
+    background:var(--gris);padding:8px 10px;border-radius:8px;
+    cursor:pointer;font-size:13px;border:1px solid transparent;flex:1;
+    justify-content:center;
+  }
+  .radio-row input{accent-color:var(--bleu);}
+  .buttons{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .buttons button{
+    padding:11px;border:none;border-radius:9px;font-size:14px;
+    font-weight:600;cursor:pointer;color:#fff;transition:.15s;
+  }
+  #btnGen{background:var(--bleu);}
+  #btnRegen{background:#0891b2;}
+  #btnPrint{background:#16a34a;}
+  .buttons button:hover{filter:brightness(1.08);}
+  .hint{font-size:12px;color:#64748b;margin-top:14px;line-height:1.4;}
+  /* Sliders */
+  .slider-row{display:flex;align-items:center;gap:10px;}
+  .slider-row input[type=range]{flex:1;accent-color:var(--bleu);}
+  #sizeVal,#propVal{font-weight:700;color:var(--bleu);min-width:44px;text-align:right;font-size:13px;}
+
+  /* ============================================================
+     LA FICHE A4
+     ============================================================ */
+  .preview{flex:1;display:flex;justify-content:center;}
+  .sheet{
+    width:210mm;
+    height:297mm;
+    background:#fff;
+    box-shadow:0 6px 24px rgba(0,0,0,.15);
+    padding:10mm;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  /* En-tête : consigne seule (plus de prénom) */
+  .sheet-header{
+    width:100%;
+    min-height:20mm;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+  #sheetConsigne{
+    font-size:6.5mm;
+    font-weight:700;
+    line-height:1.15;
+    max-width:180mm;
+  }
+  /* La grille */
+  #grid{
+    display:grid;
+    /* colonnes/lignes fixées dynamiquement en JS pour garantir des cases carrées */
+  }
+  .cell{
+    border:0.4mm solid #111;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    line-height:1;
+    overflow:hidden;
+    font-weight:600;
+  }
+  .placeholder{
+    color:#94a3b8;font-size:15px;text-align:center;margin-top:40mm;
+  }
+  /* Pied de page de la fiche */
+  .sheet-footer{
+    margin-top:auto;               /* colle le pied en bas de la zone A4 */
+    padding-top:4mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:3mm;
+    font-size:5mm;
+    font-weight:600;
+    color:#475569;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+  }
+  .sheet-footer svg{flex:0 0 auto;}
+
+  /* ============================================================
+     IMPRESSION : on masque tout sauf la fiche
+     ============================================================ */
+  @media print{
+    @page{ size:A4 portrait; margin:0; }
+    body{background:#fff;padding:0;display:block;}
+    .controls{display:none !important;}
+    .preview{display:block;}
+    .sheet{
+      box-shadow:none;
+      width:210mm;height:297mm;
+      page-break-after:avoid;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ================= PANNEAU DE COMMANDES ================= -->
+  <aside class="controls">
+    <h1>🔤 Reconnaissance des lettres</h1>
+    <p class="sub">Grille aléatoire de lettres, chiffres et symboles à trier.</p>
+
+    <div class="field">
+      <label>1. Casse des lettres</label>
+      <div class="radio-row">
+        <label><input type="radio" name="casse" value="min" checked> min.</label>
+        <label><input type="radio" name="casse" value="maj"> MAJ.</label>
+        <label><input type="radio" name="casse" value="mix"> min.+MAJ.</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="propSlider">2. Proportion de lettres (difficulté)</label>
+      <div class="slider-row">
+        <input type="range" id="propSlider" min="20" max="80" step="5" value="30">
+        <span id="propVal">30&nbsp;%</span>
+      </div>
+      <p class="hint" style="margin-top:6px;">
+        Moins de lettres = plus difficile (elles sont « noyées » parmi les distracteurs).
+        Prend effet à la prochaine génération.
+      </p>
+    </div>
+
+    <div class="field">
+      <label>3. Lettres accentuées (à, é, ç…)</label>
+      <div class="radio-row">
+        <label><input type="radio" name="accents" value="oui" checked> Inclure</label>
+        <label><input type="radio" name="accents" value="non"> Exclure</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="selFont">4. Police</label>
+      <select id="selFont">
+        <optgroup label="Recommandées (apprentissage)">
+          <option value="'Comic Sans MS','Comic Sans',cursive">Comic Sans (rond, lisible)</option>
+          <option value="'Script Ecole 2','Segoe UI',sans-serif">Script</option>
+          <option value="'SimpleRonde','Marelle'">Cursive</option>
+          <option value="Arial,Helvetica,sans-serif">Arial (bâton)</option>
+          <option value="'Tahoma','Verdana',sans-serif">Tahoma / Verdana</option>
+        </optgroup>
+      </select>
+      <button id="btnLoadFonts" type="button"
+        style="width:100%;margin-top:8px;padding:9px;border:1px solid var(--bord);
+        border-radius:8px;background:var(--gris);cursor:pointer;font-size:13px;font-weight:600;">
+        📥 Charger les polices du PC
+      </button>
+      <input type="text" id="fontManual" placeholder="…ou tapez un nom de police (ex. Cursive Dumont)">
+      <p class="hint" id="fontHint" style="margin-top:6px;">
+        Le bouton fonctionne sur <b>Chrome / Edge</b> (autorisation demandée une fois).
+        Sinon, tapez directement le nom exact d'une police installée.
+      </p>
+    </div>
+
+    <div class="field">
+      <label for="sizeSlider">5. Taille des caractères dans les cases</label>
+      <div class="slider-row">
+        <input type="range" id="sizeSlider" min="35" max="90" step="1" value="62">
+        <span id="sizeVal">62&nbsp;%</span>
+      </div>
+      <p class="hint" style="margin-top:6px;">
+        Ajustez si une police déborde ou paraît trop petite. L'aperçu se met à jour
+        instantanément, sans régénérer la grille.
+      </p>
+    </div>
+
+    <div class="buttons">
+      <button id="btnGen">Générer</button>
+      <button id="btnRegen">Régénérer</button>
+      <button id="btnPrint">Imprimer</button>
+    </div>
+
+    <p class="hint">Astuce : « Régénérer » recalcule une nouvelle grille aléatoire. L'impression masque automatiquement ce panneau.</p>
+  </aside>
+
+  <!-- ================= APERÇU DE LA FICHE A4 ================= -->
+  <main class="preview">
+    <section class="sheet" id="sheet">
+      <div class="sheet-header">
+        <div id="sheetConsigne"></div>
+      </div>
+      <div id="grid"><div class="placeholder">Cliquez sur « Générer » pour créer une grille.</div></div>
+
+      <!-- Pied de page de la fiche -->
+      <footer class="sheet-footer">
+        <svg viewBox="0 0 64 64" width="10mm" height="10mm" aria-hidden="true">
+          <!-- Petit loup "sympa" : oreilles, tête grise, museau, yeux, nez -->
+          <polygon points="10,10 22,24 6,26" fill="#94a3b8"/>
+          <polygon points="54,10 42,24 58,26" fill="#94a3b8"/>
+          <polygon points="13,13 21,23 10,24" fill="#e2e8f0"/>
+          <polygon points="51,13 43,23 54,24" fill="#e2e8f0"/>
+          <circle cx="32" cy="34" r="20" fill="#cbd5e1"/>
+          <ellipse cx="32" cy="42" rx="12" ry="10" fill="#f8fafc"/>
+          <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="25" cy="30" r="1" fill="#fff"/>
+          <circle cx="41" cy="30" r="1" fill="#fff"/>
+          <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
+          <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span>Classe des petits loups&nbsp;— Florence Zeghache</span>
+      </footer>
+    </section>
+  </main>
+
+<script>
+"use strict";
+
+/* ============================================================
+   CONSTANTES DE LA GRILLE
+   ============================================================ */
+const COLS = 7;              // colonnes
+const ROWS = 9;              // lignes
+const TOTAL = COLS * ROWS;   // 63 cases
+
+/* ------------------------------------------------------------
+   JEUX DE CARACTÈRES
+   - LETTRES_SIMPLES : a..z (sans accent)
+   - LETTRES_ACCENT  : lettres accentuées (comptent AUSSI comme lettres à colorier)
+   - CHIFFRES        : 0..9
+   - SYMBOLES        : symboles / ponctuation (NE PAS colorier)
+   ------------------------------------------------------------ */
+const LETTRES_SIMPLES = "abcdefghijklmnopqrstuvwxyz".split("");
+const LETTRES_ACCENT   = "éèêç".split("");
+const CHIFFRES         = "0123456789".split("");
+const SYMBOLES         = "€-+=%<>/£{}#*~&".split("");
+
+/* Mémorise la dernière grille/police pour redessiner sans régénérer (slider) */
+let lastGrid = null;
+let lastFont = null;
+
+/* ============================================================
+   PETITS UTILITAIRES
+   ============================================================ */
+const randInt = n => Math.floor(Math.random() * n);
+const pick    = arr => arr[randInt(arr.length)];
+function shuffle(arr){                       // mélange de Fisher-Yates
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = randInt(i+1);
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+// Facteur de taille choisi via le slider (0.35 à 0.90 du côté de la case)
+function sizeFactor(){
+  return parseInt(document.getElementById("sizeSlider").value, 10) / 100;
+}
+// Proportion de lettres choisie via le slider (0.20 à 0.80)
+function letterRatio(){
+  return parseInt(document.getElementById("propSlider").value, 10) / 100;
+}
+
+/* ============================================================
+   TIRAGE D'UNE LETTRE (avec ou sans accents) SELON LA CASSE
+   ============================================================ */
+function tirerLettre(casse, avecAccents){
+  // ~1 lettre sur 4 est accentuée SI les accents sont activés
+  let base;
+  if(avecAccents && randInt(4) === 0) base = pick(LETTRES_ACCENT);
+  else                                base = pick(LETTRES_SIMPLES);
+  if(casse === "maj") return base.toUpperCase();
+  if(casse === "min") return base.toLowerCase();
+  // mode "mix" : casse aléatoire lettre par lettre
+  return (randInt(2) === 0) ? base.toUpperCase() : base.toLowerCase();
+}
+
+/* ============================================================
+   TIRAGE D'UN DISTRACTEUR (chiffre OU symbole, NON coloriable)
+   ============================================================ */
+function tirerDistracteur(){
+  return (randInt(2) === 0) ? pick(CHIFFRES) : pick(SYMBOLES);
+}
+
+/* ============================================================
+   CONSTRUCTION DE LA GRILLE
+   Proportion de lettres réglable ; le reste chiffres/symboles.
+   ============================================================ */
+function buildGrid(casse, ratio, avecAccents){
+  let nbLettres = Math.round(TOTAL * ratio);
+  // garde-fous : au moins 1 lettre et au moins 1 distracteur
+  nbLettres = Math.max(1, Math.min(TOTAL - 1, nbLettres));
+
+  const cases = [];
+  for(let i=0;i<TOTAL;i++){
+    cases.push(i < nbLettres ? tirerLettre(casse, avecAccents) : tirerDistracteur());
+  }
+  const melange = shuffle(cases);                      // dispersion aléatoire
+  const grid = [];
+  let k = 0;
+  for(let r=0;r<ROWS;r++){
+    const row = [];
+    for(let c=0;c<COLS;c++) row.push(melange[k++]);
+    grid.push(row);
+  }
+  return grid;
+}
+
+/* ============================================================
+   RENDU À L'ÉCRAN + MISE À L'ÉCHELLE (cases carrées)
+   ============================================================ */
+function computeCell(){
+  // Zone utile intérieure (A4 - marges 10mm) = 190 x 277 mm
+  // On réserve ~28mm pour la consigne (haut) + le pied de page (bas)
+  const innerW = 190, innerH = 277, reserve = 28;
+  return Math.min(innerW / COLS, (innerH - reserve) / ROWS);
+}
+function renderGrid(grid, font){
+  const cell = computeCell();
+  const gridEl = document.getElementById("grid");
+  gridEl.innerHTML = "";
+  gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${cell}mm)`;
+  gridEl.style.gridTemplateRows    = `repeat(${ROWS}, ${cell}mm)`;
+  gridEl.style.fontFamily = font;
+
+  const factor = sizeFactor();
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const d = document.createElement("div");
+      d.className = "cell";
+      d.textContent = grid[r][c];
+      d.style.fontSize = (cell * factor) + "mm";
+      gridEl.appendChild(d);
+    }
+  }
+}
+
+/* ============================================================
+   POLICE ACTIVE (liste OU saisie libre prioritaire)
+   ============================================================ */
+function getFont(){
+  const manuel = document.getElementById("fontManual").value.trim();
+  if(manuel) return `'${manuel}', sans-serif`;
+  return document.getElementById("selFont").value;
+}
+
+/* ============================================================
+   GÉNÉRATION PRINCIPALE
+   ============================================================ */
+function generate(){
+  const casse       = document.querySelector('input[name=casse]:checked').value;
+  const avecAccents = document.querySelector('input[name=accents]:checked').value === "oui";
+  const ratio       = letterRatio();
+  const font        = getFont();
+
+  const grid = buildGrid(casse, ratio, avecAccents);
+
+  document.getElementById("sheetConsigne").textContent =
+    "Consigne : Colorie uniquement les lettres.";
+
+  // Mémorise pour le slider puis rend
+  lastGrid = grid;
+  lastFont = font;
+  renderGrid(grid, font);
+}
+
+/* ============================================================
+   POLICES DU PC (API Local Font Access — Chrome/Edge)
+   ============================================================ */
+document.getElementById("btnLoadFonts").addEventListener("click", async () => {
+  const hint = document.getElementById("fontHint");
+  if(!("queryLocalFonts" in window)){
+    hint.innerHTML = "⚠️ Votre navigateur ne permet pas de lister les polices. "
+      + "Utilisez <b>Chrome</b> ou <b>Edge</b>, ou tapez le nom de la police dans le champ ci-dessus.";
+    return;
+  }
+  try{
+    const fonts = await window.queryLocalFonts();
+    const familles = [...new Set(fonts.map(f => f.family))].sort((a,b) => a.localeCompare(b,'fr'));
+    const sel = document.getElementById("selFont");
+    let grp = document.getElementById("grpPC");
+    if(grp) grp.remove();
+    grp = document.createElement("optgroup");
+    grp.id = "grpPC";
+    grp.label = `Polices du PC (${familles.length})`;
+    familles.forEach(fam => {
+      const o = document.createElement("option");
+      o.value = `'${fam}'`;
+      o.textContent = fam;
+      o.style.fontFamily = `'${fam}'`;
+      grp.appendChild(o);
+    });
+    sel.appendChild(grp);
+    hint.innerHTML = `✅ ${familles.length} polices chargées ! Choisissez-la dans la liste déroulante.`;
+  }catch(err){
+    hint.innerHTML = "⚠️ Autorisation refusée ou indisponible. "
+      + "Vous pouvez taper le nom de la police dans le champ ci-dessus.";
+  }
+});
+
+/* ============================================================
+   SLIDER DE TAILLE — redessine sans changer le tirage
+   ============================================================ */
+const sizeSlider = document.getElementById("sizeSlider");
+sizeSlider.addEventListener("input", () => {
+  document.getElementById("sizeVal").innerHTML = sizeSlider.value + "&nbsp;%";
+  if(lastGrid) renderGrid(lastGrid, lastFont);
+});
+
+/* ============================================================
+   SLIDER DE PROPORTION — met juste à jour l'affichage
+   (le nouveau ratio s'applique à la prochaine génération)
+   ============================================================ */
+const propSlider = document.getElementById("propSlider");
+propSlider.addEventListener("input", () => {
+  document.getElementById("propVal").innerHTML = propSlider.value + "&nbsp;%";
+});
+
+/* ============================================================
+   BOUTONS
+   ============================================================ */
+document.getElementById("btnGen").addEventListener("click", generate);
+document.getElementById("btnRegen").addEventListener("click", generate);
+document.getElementById("btnPrint").addEventListener("click", () => window.print());
+</script>
+</body>
+</html>

@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche – Légendes d'image (haut/bas)</title>
+<style>
+  /* ============================================================
+     STYLES GÉNÉRAUX (écran)
+     ============================================================ */
+  :root{
+    --bleu:#2563eb;
+    --gris:#f1f5f9;
+    --bord:#cbd5e1;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Arial,sans-serif;
+    background:#e2e8f0;
+    color:#0f172a;
+    display:flex;
+    gap:20px;
+    padding:20px;
+    align-items:flex-start;
+  }
+  /* -------- Panneau de commandes (masqué à l'impression) -------- */
+  .controls{
+    flex:0 0 340px;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 4px 18px rgba(0,0,0,.08);
+    padding:22px;
+    position:sticky;
+    top:20px;
+    max-height:calc(100vh - 40px);
+    overflow-y:auto;
+  }
+  .controls h1{font-size:20px;margin:0 0 4px;}
+  .controls p.sub{margin:0 0 18px;color:#64748b;font-size:13px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-weight:600;font-size:13px;margin-bottom:6px;}
+  .field textarea,
+  .field input[type=text],
+  .field input[type=file]{
+    width:100%;padding:8px;border:1px solid var(--bord);
+    border-radius:8px;font-size:14px;background:#fff;font-family:inherit;
+  }
+  .field textarea{resize:vertical;min-height:50px;}
+  .status{font-size:12px;margin-top:6px;font-weight:600;}
+  .ok{color:#16a34a;}
+  .ko{color:#dc2626;}
+  .buttons{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .buttons button{
+    padding:11px;border:none;border-radius:9px;font-size:14px;
+    font-weight:600;cursor:pointer;color:#fff;transition:.15s;
+  }
+  #btnGen{background:var(--bleu);}
+  #btnPrint{background:#16a34a;}
+  .buttons button:hover{filter:brightness(1.08);}
+  .hint{font-size:12px;color:#64748b;margin-top:8px;line-height:1.4;}
+  /* Sliders */
+  .slider-row{display:flex;align-items:center;gap:10px;}
+  .slider-row input[type=range]{flex:1;accent-color:var(--bleu);}
+  .slider-row .val{font-weight:700;color:var(--bleu);min-width:48px;text-align:right;font-size:13px;}
+  /* Choix de police (radio stylées) */
+  .radio-row{display:flex;flex-direction:column;gap:8px;}
+  .radio-row label{
+    display:flex;align-items:center;gap:8px;font-weight:500;
+    background:var(--gris);padding:8px 10px;border-radius:8px;
+    cursor:pointer;font-size:13px;border:1px solid transparent;
+  }
+  .radio-row input{accent-color:var(--bleu);}
+  /* Bloc légendes (6 champs) */
+  .legend-inputs{display:flex;flex-direction:column;gap:6px;}
+  .legend-inputs .row{display:flex;align-items:center;gap:8px;}
+  .legend-inputs .row span{flex:0 0 78px;font-size:12px;color:#475569;}
+  .legend-inputs .row input{
+    flex:1;padding:6px 8px;border:1px solid var(--bord);border-radius:7px;font-size:13px;
+  }
+  .section-title{
+    font-size:13px;font-weight:700;margin:18px 0 8px;color:#1e293b;
+    border-bottom:1px solid var(--bord);padding-bottom:4px;
+  }
+  /* ============================================================
+     PAGES A4 (fiche + étiquettes)
+     ============================================================ */
+  .preview{flex:1;display:flex;flex-direction:column;align-items:center;gap:20px;}
+  .sheet{
+    width:210mm;
+    height:297mm;
+    background:#fff;
+    box-shadow:0 6px 24px rgba(0,0,0,.15);
+    padding:10mm;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    overflow:hidden;
+  }
+  /* --- Consigne --- */
+  .sheet-header{
+    width:100%;
+    min-height:16mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    flex:0 0 auto;
+  }
+  .sheet-consigne{
+    font-weight:700;
+    line-height:1.2;
+    max-width:188mm;
+    white-space:pre-wrap;
+  }
+  /* --- Zone diagramme : rangée du haut / image / rangée du bas ---
+     (v2 : les légendes sont désormais AU-DESSUS et EN DESSOUS de
+     l'image, au lieu d'être réparties à gauche/droite comme en v1) */
+  .diagram{
+    width:100%;
+    flex:1 1 auto;
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    justify-content:center;
+    gap:4mm;
+    min-height:0;
+    margin-top:15mm;
+  }
+  .legend-row{
+    flex:0 0 auto;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:4mm;
+    min-height:0;
+  }
+  .legend-slot{
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+  .legend-slot.empty{visibility:hidden;}
+  .legend-box{
+    flex:1;
+    min-height:20mm;
+    border:0.4mm solid #111;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    overflow:hidden;
+    padding:1mm;
+    line-height:1.05;
+  }
+  .legend-box.blank{background:#fff;}
+  .image-col{
+    flex:1 1 auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-width:0;
+    min-height:0;
+    overflow:hidden;
+  }
+  .image-col img{
+    display:block;
+    object-fit:contain;
+  }
+  /* --- Légende de référence (sous l'image) --- */
+  .ref-legend{
+    flex:0 0 auto;
+    width:100%;
+    display:flex;
+    justify-content:center;
+    padding-top:3mm;
+  }
+  .ref-legend .stack{
+    width:70mm;
+    display:flex;
+    flex-direction:column;
+  }
+  .ref-legend .legend-box{border:none;}
+  /* .ref-legend .legend-box{border-color:#111;} */
+  /* --- Pied de page --- */
+  .sheet-footer{
+    flex:0 0 auto;
+    padding-top:3mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:3mm;
+    font-size:5mm;
+    font-weight:600;
+    color:#475569;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+  }
+  .sheet-footer svg{flex:0 0 auto;}
+  .placeholder{
+    margin:auto;color:#94a3b8;font-size:15px;text-align:center;padding:0 20mm;
+  }
+  /* --- Page d'étiquettes à découper --- */
+  .labels-title{
+    width:100%;font-weight:700;text-align:center;font-size:5mm;
+    padding-bottom:3mm;flex:0 0 auto;
+  }
+  .labels-body{
+    width:100%;flex:1 1 auto;display:flex;flex-direction:column;
+    justify-content:space-around;min-height:0;overflow:hidden;
+  }
+  /* Un "jeu" = une série complète d'étiquettes (3 écritures) pour toutes
+     les légendes actives. Plusieurs jeux sont empilés sur UNE MÊME page,
+     ce qui limite le nombre total de pages imprimées. */
+  .cut-set{
+    width:100%;
+    border-top:0.4mm dashed #94a3b8;
+    padding-top:3mm;
+  }
+  .cut-set-label{
+    font-size:3.6mm;color:#94a3b8;font-weight:700;margin-bottom:2.5mm;
+    display:flex;align-items:center;gap:2mm;
+  }
+  .cut-row{
+    display:flex;align-items:center;gap:3mm;margin-bottom:2.5mm;flex-wrap:wrap;
+  }
+  .cut-row .row-tag{
+    flex:0 0 24mm;font-size:3.2mm;color:#64748b;font-weight:700;
+    display:flex;align-items:center;gap:1.5mm;
+  }
+  .cut-row.target .row-tag{
+    color:#fff;background:var(--bleu);
+    padding:1mm 2mm;border-radius:1.5mm;
+  }
+  .cut-item{
+    border:0.4mm dashed #64748b;
+    border-radius:2mm;
+    display:flex;align-items:center;justify-content:center;
+    padding:4mm 3mm;
+    min-width:20mm;
+    background:#fff;
+    line-height:1.05;
+  }
+  /* ============================================================
+     IMPRESSION
+     ============================================================ */
+  @media print{
+    @page{ size:A4 portrait; margin:0; }
+    body{background:#fff;padding:0;display:block;}
+    .controls{display:none !important;}
+    .preview{display:block;gap:0;}
+    .sheet{
+      box-shadow:none;
+      width:210mm;height:297mm;
+      page-break-after:always;
+    }
+    .sheet:last-child{page-break-after:auto;}
+  }
+</style>
+</head>
+<body>
+  <!-- ================= PANNEAU DE COMMANDES ================= -->
+  <aside class="controls">
+    <h1>🖼️🏷️ Légendes d'image (haut/bas)</h1>
+    <p class="sub">Fiche + étiquettes à découper, dans 3 styles d'écriture.</p>
+    <div class="field">
+      <label for="consigneText">Consigne</label>
+      <textarea id="consigneText">Consigne : colle chaque étiquette dans la bonne écriture au bon endroit.</textarea>
+    </div>
+    <div class="field">
+      <label for="sizeConsigne">Taille de la police de la consigne</label>
+      <div class="slider-row">
+        <input type="range" id="sizeConsigne" min="8" max="28" step="1" value="18">
+        <span class="val" id="sizeConsigneVal">18&nbsp;pt</span>
+      </div>
+    </div>
+    <div class="section-title">Police désignée (pour la fiche modèle)</div>
+    <div class="field">
+      <div class="radio-row">
+        <label><input type="radio" name="designFont" value="capitale"> Capitale — Comic Sans MS (majuscules forcées)</label>
+        <label><input type="radio" name="designFont" value="script" checked> Script — Script Ecole 2</label>
+        <label><input type="radio" name="designFont" value="cursive"> Cursive — SimpleRonde</label>
+      </div>
+      <p class="hint">Cette police s'applique aux mots déjà écrits sur la fiche (page 1). Les étiquettes à découper (pages suivantes) affichent toujours les 3 écritures, pour que l'enfant reconnaisse celle-ci parmi les autres (mise en évidence en bleu ★).</p>
+    </div>
+    <div class="field">
+      <label for="sizeLegend">Taille de la police des légendes</label>
+      <div class="slider-row">
+        <input type="range" id="sizeLegend" min="8" max="28" step="1" value="16">
+        <span class="val" id="sizeLegendVal">16&nbsp;pt</span>
+      </div>
+    </div>
+    <div class="section-title">Image</div>
+    <div class="field">
+      <label for="fileImage">Importer l'image</label>
+      <input type="file" id="fileImage" accept="image/*">
+      <div class="status" id="statImage">Aucune image chargée.</div>
+    </div>
+    <div class="field">
+      <label for="sizeImage">Taille de l'image</label>
+      <div class="slider-row">
+        <input type="range" id="sizeImage" min="10" max="500" step="5" value="100">
+        <span class="val" id="sizeImageVal">100&nbsp;%</span>
+      </div>
+    </div>
+    <div class="section-title">Légendes (laisser vide = pas de cadre)</div>
+    <div class="field">
+      <label>Légende de référence (sous l'image)</label>
+      <input type="text" id="legendRef" placeholder="Ex. La prune">
+    </div>
+    <div class="field legend-inputs">
+      <div class="row"><span>Légende 1</span><input type="text" id="legend1" placeholder="Au-dessus"></div>
+      <div class="row"><span>Légende 2</span><input type="text" id="legend2" placeholder="En dessous"></div>
+      <div class="row"><span>Légende 3</span><input type="text" id="legend3" placeholder="Au-dessus"></div>
+      <div class="row"><span>Légende 4</span><input type="text" id="legend4" placeholder="En dessous"></div>
+      <div class="row"><span>Légende 5</span><input type="text" id="legend5" placeholder="Au-dessus"></div>
+      <div class="row"><span>Légende 6</span><input type="text" id="legend6" placeholder="En dessous"></div>
+    </div>
+    <p class="hint">Les légendes se répartissent en alternance : 1=au-dessus, 2=en dessous, 3=au-dessus, 4=en dessous… (3 maximum de chaque côté). Respectez les majuscules/minuscules : elles sont conservées telles quelles (sauf en écriture Capitale, toujours en majuscules).</p>
+    <div class="section-title">Étiquettes à découper</div>
+    <div class="field">
+      <label for="setsPerPage">Nombre de jeux par page</label>
+      <div class="slider-row">
+        <input type="range" id="setsPerPage" min="1" max="3" step="1" value="3">
+        <span class="val" id="setsPerPageVal">3</span>
+      </div>
+      <p class="hint">Empile plusieurs jeux d'étiquettes sur une même page pour limiter le nombre de pages imprimées (3 jeux/page = 1 seule page pour 3 chances).</p>
+    </div>
+    <div class="field">
+      <label for="totalSets">Nombre total de jeux (chances)</label>
+      <div class="slider-row">
+        <input type="range" id="totalSets" min="1" max="6" step="1" value="3">
+        <span class="val" id="totalSetsVal">3</span>
+      </div>
+    </div>
+    <div class="buttons">
+      <button id="btnGen">Générer</button>
+      <button id="btnPrint">Imprimer</button>
+    </div>
+    <p class="hint">La page 1 est la fiche modèle. Les pages suivantes contiennent les étiquettes à découper, regroupées pour limiter le nombre de pages.</p>
+  </aside>
+  <!-- ================= APERÇU DES PAGES ================= -->
+  <main class="preview" id="preview">
+    <section class="sheet" id="sheetModel">
+      <div class="placeholder">Réglez vos paramètres, importez une image, saisissez vos légendes, puis cliquez sur « Générer ».</div>
+    </section>
+  </main>
+<script>
+"use strict";
+/* ============================================================
+   CORRESPONDANCE DES 3 STYLES D'ÉCRITURE
+   ============================================================ */
+const FONT_CSS = {
+  capitale: "'Comic Sans MS','Comic Sans',cursive",
+  script:   "'Script Ecole 2', cursive",
+  cursive:  "'SimpleRonde', cursive",
+};
+const STYLE_ORDER = [
+  { key: "capitale", label: "CAPITALE" },
+  { key: "script",   label: "SCRIPT"   },
+  { key: "cursive",  label: "CURSIVE"  },
+];
+/* Formatte un mot selon le style (force les majuscules en mode "capitale",
+   respecte la casse saisie par l'enseignante pour les 2 autres styles). */
+function formatWord(word, styleKey){
+  return styleKey === "capitale" ? word.toUpperCase() : word;
+}
+const $ = id => document.getElementById(id);
+let imageUrl = null;
+
+/* ============================================================
+   IMPORT DE L'IMAGE
+   ============================================================ */
+$("fileImage").addEventListener("change", e => {
+  const file = e.target.files[0];
+  const el = $("statImage");
+  if(!file) return;
+  if(!file.type.startsWith("image/")){
+    el.className = "status ko";
+    el.textContent = "⚠️ Fichier non reconnu comme image.";
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    imageUrl = ev.target.result;
+    el.className = "status ok";
+    el.textContent = "✅ Image chargée : " + file.name;
+  };
+  reader.readAsDataURL(file);
+});
+
+/* ============================================================
+   COLLECTE DES LÉGENDES ACTIVES (6 maxi en v2)
+   ============================================================ */
+function collectLegends(){
+  const arr = [];
+  for(let i=1;i<=6;i++){
+    arr.push($("legend"+i).value.trim());
+  }
+  return arr;
+}
+
+/* ============================================================
+   RENDU DE LA PAGE 1 : FICHE MODÈLE
+   ============================================================ */
+function buildLegendSlot(text, designFont, sizePt){
+  const slot = document.createElement("div");
+  if(!text){
+    slot.className = "legend-slot empty";
+    return slot;
+  }
+  slot.className = "legend-slot";
+  const wordBox = document.createElement("div");
+  wordBox.className = "legend-box word";
+  wordBox.style.fontFamily = FONT_CSS[designFont];
+  wordBox.style.fontSize = sizePt + "pt";
+  wordBox.textContent = formatWord(text, designFont);
+  const blankBox = document.createElement("div");
+  blankBox.className = "legend-box blank";
+  slot.appendChild(wordBox);
+  slot.appendChild(blankBox);
+  return slot;
+}
+function renderModelSheet(){
+  const consigne   = $("consigneText").value.trim() || "Consigne : ...";
+  const sizeCons    = parseInt($("sizeConsigne").value, 10);
+  const designFont  = document.querySelector('input[name=designFont]:checked').value;
+  const sizeLegend  = parseInt($("sizeLegend").value, 10);
+  const imgPct      = parseInt($("sizeImage").value, 10);
+  const legends     = collectLegends();
+  const refText     = $("legendRef").value.trim();
+  const sheet = $("sheetModel");
+  sheet.innerHTML = "";
+  if(!imageUrl){
+    const ph = document.createElement("div");
+    ph.className = "placeholder";
+    ph.textContent = "Importez une image puis cliquez sur « Générer ».";
+    sheet.appendChild(ph);
+    return;
+  }
+  const header = document.createElement("div");
+  header.className = "sheet-header";
+  const cons = document.createElement("div");
+  cons.className = "sheet-consigne";
+  cons.style.fontSize = sizeCons + "pt";
+  cons.textContent = consigne;
+  header.appendChild(cons);
+  sheet.appendChild(header);
+
+  /* --- Diagramme : rangée du haut / image / rangée du bas ---
+     Répartition alternée figée : index pair (0,2,4) -> haut ;
+     index impair (1,3,5) -> bas (3 maximum de chaque côté). */
+  const diagram = document.createElement("div");
+  diagram.className = "diagram";
+  const topRow = document.createElement("div");
+  topRow.className = "legend-row";
+  const bottomRow = document.createElement("div");
+  bottomRow.className = "legend-row";
+  for(let i=0;i<6;i++){
+    const slot = buildLegendSlot(legends[i], designFont, sizeLegend);
+    (i % 2 === 0 ? topRow : bottomRow).appendChild(slot);
+  }
+  const imgCol = document.createElement("div");
+  imgCol.className = "image-col";
+  const img = document.createElement("img");
+  img.src = imageUrl;
+  img.alt = "Image de la fiche";
+  img.style.maxWidth  = imgPct + "%";
+  img.style.maxHeight = imgPct + "%";
+  imgCol.appendChild(img);
+  diagram.appendChild(topRow);
+  diagram.appendChild(imgCol);
+  diagram.appendChild(bottomRow);
+  sheet.appendChild(diagram);
+
+  if(refText){
+    const refWrap = document.createElement("div");
+    refWrap.className = "ref-legend";
+    const stack = document.createElement("div");
+    stack.className = "stack";
+    const blankBox = document.createElement("div");
+    blankBox.className = "legend-box blank";
+    const wordBox = document.createElement("div");
+    wordBox.className = "legend-box word";
+    wordBox.style.fontFamily = FONT_CSS[designFont];
+    wordBox.style.fontSize = sizeLegend + "pt";
+    wordBox.textContent = formatWord(refText, designFont);
+    stack.appendChild(blankBox);
+    stack.appendChild(wordBox);
+    refWrap.appendChild(stack);
+    sheet.appendChild(refWrap);
+  }
+  sheet.appendChild(makeFooter());
+}
+
+/* ============================================================
+   PIED DE PAGE (identique sur toutes les pages)
+   ============================================================ */
+function makeFooter(){
+  const footer = document.createElement("footer");
+  footer.className = "sheet-footer";
+  footer.innerHTML = `
+    <svg viewBox="0 0 64 64" width="10mm" height="10mm" aria-hidden="true">
+      <polygon points="10,10 22,24 6,26" fill="#94a3b8"/>
+      <polygon points="54,10 42,24 58,26" fill="#94a3b8"/>
+      <polygon points="13,13 21,23 10,24" fill="#e2e8f0"/>
+      <polygon points="51,13 43,23 54,24" fill="#e2e8f0"/>
+      <circle cx="32" cy="34" r="20" fill="#cbd5e1"/>
+      <ellipse cx="32" cy="42" rx="12" ry="10" fill="#f8fafc"/>
+      <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
+      <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
+      <circle cx="25" cy="30" r="1" fill="#fff"/>
+      <circle cx="41" cy="30" r="1" fill="#fff"/>
+      <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
+      <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    </svg>
+    <span>Classe des petits loups&nbsp;— Florence Zeghache</span>
+  `;
+  return footer;
+}
+
+/* ============================================================
+   ÉTIQUETTES À DÉCOUPER — VERSION COMPACTE, PLUSIEURS JEUX/PAGE
+   (identique à la v1, aucune modification apportée à cette partie)
+   ============================================================ */
+function buildOneSet(words, sizeLegend, targetStyle, setNumber){
+  const setEl = document.createElement("div");
+  setEl.className = "cut-set";
+
+  const setLabel = document.createElement("div");
+  setLabel.className = "cut-set-label";
+  setLabel.innerHTML = "✂️ Jeu " + setNumber + " — série d'étiquettes";
+  setEl.appendChild(setLabel);
+
+  for(const s of STYLE_ORDER){
+    const row = document.createElement("div");
+    row.className = "cut-row" + (s.key === targetStyle ? " target" : "");
+
+    const rowTag = document.createElement("div");
+    rowTag.className = "row-tag";
+    rowTag.textContent = s.label + (s.key === targetStyle ? " ★" : "");
+    row.appendChild(rowTag);
+
+    for(const w of words){
+      const item = document.createElement("div");
+      item.className = "cut-item";
+      item.style.fontFamily = FONT_CSS[s.key];
+      item.style.fontSize = sizeLegend + "pt";
+      item.textContent = formatWord(w, s.key);
+      row.appendChild(item);
+    }
+    setEl.appendChild(row);
+  }
+  return setEl;
+}
+
+function buildLabelPage(words, sizeLegend, targetStyle, setNumbers){
+  const sheet = document.createElement("section");
+  sheet.className = "sheet";
+
+  const title = document.createElement("div");
+  title.className = "labels-title";
+  title.textContent = "Étiquettes à découper";
+  sheet.appendChild(title);
+
+  const body = document.createElement("div");
+  body.className = "labels-body";
+  for(const n of setNumbers){
+    body.appendChild(buildOneSet(words, sizeLegend, targetStyle, n));
+  }
+  sheet.appendChild(body);
+
+  sheet.appendChild(makeFooter());
+  return sheet;
+}
+
+function buildAllLabelPages(words, sizeLegend, targetStyle, totalSets, setsPerPage){
+  const pages = [];
+  let remaining = totalSets;
+  let current = 1;
+  while(remaining > 0){
+    const countThisPage = Math.min(setsPerPage, remaining);
+    const numbers = [];
+    for(let i=0;i<countThisPage;i++){ numbers.push(current); current++; }
+    pages.push(buildLabelPage(words, sizeLegend, targetStyle, numbers));
+    remaining -= countThisPage;
+  }
+  return pages;
+}
+
+/* ============================================================
+   GÉNÉRATION PRINCIPALE
+   ============================================================ */
+function generate(){
+  if(!imageUrl){
+    alert("Veuillez d'abord importer une image.");
+    return;
+  }
+  renderModelSheet();
+
+  const sizeLegend = parseInt($("sizeLegend").value, 10);
+  const designFont = document.querySelector('input[name=designFont]:checked').value;
+  const legends = collectLegends().filter(w => w.length > 0);
+  const refText = $("legendRef").value.trim();
+  const words = refText ? [...legends, refText] : legends;
+
+  const setsPerPage = parseInt($("setsPerPage").value, 10);
+  const totalSets   = parseInt($("totalSets").value, 10);
+
+  const preview = $("preview");
+  [...preview.querySelectorAll(".label-sheet-wrap")].forEach(n => n.remove());
+
+  if(words.length === 0) return;
+
+  const pages = buildAllLabelPages(words, sizeLegend, designFont, totalSets, setsPerPage);
+  for(const page of pages){
+    page.classList.add("label-sheet-wrap");
+    preview.appendChild(page);
+  }
+}
+
+/* ============================================================
+   SLIDERS (mise à jour affichage)
+   ============================================================ */
+$("sizeConsigne").addEventListener("input", () => {
+  $("sizeConsigneVal").textContent = $("sizeConsigne").value + " pt";
+});
+$("sizeLegend").addEventListener("input", () => {
+  $("sizeLegendVal").textContent = $("sizeLegend").value + " pt";
+});
+$("sizeImage").addEventListener("input", () => {
+  $("sizeImageVal").innerHTML = $("sizeImage").value + "&nbsp;%";
+});
+$("setsPerPage").addEventListener("input", () => {
+  $("setsPerPageVal").textContent = $("setsPerPage").value;
+});
+$("totalSets").addEventListener("input", () => {
+  $("totalSetsVal").textContent = $("totalSets").value;
+});
+
+/* ============================================================
+   BOUTONS
+   ============================================================ */
+$("btnGen").addEventListener("click", generate);
+$("btnPrint").addEventListener("click", () => window.print());
+</script>
+</body>
+</html>

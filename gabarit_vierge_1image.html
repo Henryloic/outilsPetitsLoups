@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gabarit vierge – Fiche personnalisée</title>
+<style>
+  /* ============================================================
+     GABARIT VIERGE — outil générique réutilisable
+     ------------------------------------------------------------
+     Structure d'une fiche A4 :
+       1) Consigne (texte libre, police + taille ajustables)
+       2) Zone image (PNG importé, taille ajustable en %)
+       3) Pied de page (identique sur tous les outils de la classe)
+     Ce fichier est volontairement simple et commenté pour servir
+     de BASE DE DÉPART à la création rapide d'autres outils.
+     ============================================================ */
+
+  /* ---------- STYLES GÉNÉRAUX (écran) ---------- */
+  :root{
+    --bleu:#2563eb;
+    --gris:#f1f5f9;
+    --bord:#cbd5e1;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Arial,sans-serif;
+    background:#e2e8f0;
+    color:#0f172a;
+    display:flex;
+    gap:20px;
+    padding:20px;
+    align-items:flex-start;
+  }
+
+  /* -------- Panneau de commandes (masqué à l'impression) -------- */
+  .controls{
+    flex:0 0 330px;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 4px 18px rgba(0,0,0,.08);
+    padding:22px;
+    position:sticky;
+    top:20px;
+  }
+  .controls h1{font-size:20px;margin:0 0 4px;}
+  .controls p.sub{margin:0 0 18px;color:#64748b;font-size:13px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-weight:600;font-size:13px;margin-bottom:6px;}
+  .field textarea,
+  .field input[type=text],
+  .field input[type=file]{
+    width:100%;padding:8px;border:1px solid var(--bord);
+    border-radius:8px;font-size:14px;background:#fff;font-family:inherit;
+  }
+  .field textarea{resize:vertical;min-height:60px;}
+  .status{font-size:12px;margin-top:6px;font-weight:600;}
+  .ok{color:#16a34a;}
+  .ko{color:#dc2626;}
+  .buttons{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .buttons button{
+    padding:11px;border:none;border-radius:9px;font-size:14px;
+    font-weight:600;cursor:pointer;color:#fff;transition:.15s;
+  }
+  #btnGen{background:var(--bleu);}
+  #btnPrint{background:#16a34a;}
+  .buttons button:hover{filter:brightness(1.08);}
+  .hint{font-size:12px;color:#64748b;margin-top:14px;line-height:1.4;}
+  /* Sliders */
+  .slider-row{display:flex;align-items:center;gap:10px;}
+  .slider-row input[type=range]{flex:1;accent-color:var(--bleu);}
+  .slider-row .val{font-weight:700;color:var(--bleu);min-width:44px;text-align:right;font-size:13px;}
+
+  /* ============================================================
+     LA FICHE A4
+     ============================================================ */
+  .preview{flex:1;display:flex;justify-content:center;}
+  .sheet{
+    width:210mm;
+    height:297mm;
+    background:#fff;
+    box-shadow:0 6px 24px rgba(0,0,0,.15);
+    padding:10mm;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  /* --- 1) Consigne : toujours en haut, comme les autres fiches --- */
+  .sheet-header{
+    width:100%;
+    min-height:16mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+  #sheetConsigne{
+    font-weight:700;
+    line-height:1.2;
+    max-width:188mm;
+    white-space:pre-wrap;      /* respecte les retours à la ligne tapés par l'enseignante */
+  }
+  /* --- 2) Zone image : occupe tout l'espace restant --- */
+  #imageZone{
+    width:100%;
+    flex:1;                    /* prend toute la hauteur disponible entre consigne et pied */
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    min-height:0;              /* évite le débordement flex sur certains navigateurs */
+  }
+  #imageZone img{
+    display:block;
+    object-fit:contain;        /* jamais déformée : respecte toujours les proportions */
+  }
+  .placeholder{
+    color:#94a3b8;font-size:15px;text-align:center;margin:auto;padding:0 20mm;
+  }
+  /* --- 3) Pied de page : identique à tous les outils de la classe --- */
+  .sheet-footer{
+    flex:0 0 auto;
+    padding-top:3mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:3mm;
+    font-size:5mm;
+    font-weight:600;
+    color:#475569;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+  }
+  .sheet-footer svg{flex:0 0 auto;}
+
+  /* ============================================================
+     IMPRESSION : on masque tout sauf la fiche
+     ============================================================ */
+  @media print{
+    @page{ size:A4 portrait; margin:0; }
+    body{background:#fff;padding:0;display:block;}
+    .controls{display:none !important;}
+    .preview{display:block;}
+    .sheet{
+      box-shadow:none;
+      width:210mm;height:297mm;
+      page-break-after:avoid;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ================= PANNEAU DE COMMANDES ================= -->
+  <aside class="controls">
+    <h1>🖼️ Gabarit vierge</h1>
+    <p class="sub">Habiller n'importe quelle image en 2 clics, avec une consigne personnalisée.</p>
+
+    <!-- ---------- 1) CONSIGNE (texte libre) ---------- -->
+    <div class="field">
+      <label for="consigneText">1. Consigne (texte libre)</label>
+      <textarea id="consigneText" placeholder="Ex. : Observe l'image et raconte ce que tu vois.">Consigne : observe l'image et raconte ce que tu vois.</textarea>
+    </div>
+
+    <div class="field">
+      <label for="fontName">2. Police de la consigne</label>
+      <input type="text" id="fontName" value="Script Ecole 2">
+      <p class="hint">Nom d'une police installée sur le PC (par défaut : police système).</p>
+    </div>
+
+    <div class="field">
+      <label for="sizeConsigne">3. Taille de la consigne</label>
+      <div class="slider-row">
+        <input type="range" id="sizeConsigne" min="10" max="60" step="1" value="24">
+        <span class="val" id="sizeConsigneVal">24&nbsp;pt</span>
+      </div>
+    </div>
+
+    <!-- ---------- 2) IMAGE ---------- -->
+    <div class="field">
+      <label for="fileImage">4. Importer l'image (PNG)</label>
+      <input type="file" id="fileImage" accept="image/png,image/*">
+      <div class="status" id="statImage">Aucune image chargée.</div>
+    </div>
+
+    <div class="field">
+      <label for="sizeImage">5. Taille de l'image (% de la zone)</label>
+      <div class="slider-row">
+        <input type="range" id="sizeImage" min="30" max="100" step="1" value="100">
+        <span class="val" id="sizeImageVal">100&nbsp;%</span>
+      </div>
+      <p class="hint">
+        100 % = l'image occupe tout l'espace disponible (sans jamais être déformée).
+        Réduisez si vous voulez plus de marge autour.
+      </p>
+    </div>
+
+    <div class="buttons">
+      <button id="btnGen">Générer</button>
+      <button id="btnPrint">Imprimer</button>
+    </div>
+
+    <p class="hint">
+      « Générer » applique la consigne et l'image sur la fiche. Les sliders de taille
+      s'appliquent instantanément. L'impression masque automatiquement ce panneau.
+    </p>
+  </aside>
+
+  <!-- ================= APERÇU DE LA FICHE A4 ================= -->
+  <main class="preview">
+    <section class="sheet" id="sheet">
+
+      <!-- 1) Consigne -->
+      <div class="sheet-header">
+        <div id="sheetConsigne"></div>
+      </div>
+
+      <!-- 2) Zone image -->
+      <div id="imageZone">
+        <div class="placeholder" id="imgPlaceholder">
+          Importez une image puis cliquez sur « Générer ».
+        </div>
+      </div>
+
+      <!-- 3) Pied de page (identique aux autres outils) -->
+      <footer class="sheet-footer">
+        <svg viewBox="0 0 64 64" width="10mm" height="10mm" aria-hidden="true">
+          <!-- Petit loup "sympa" : oreilles, tête grise, museau, yeux, nez -->
+          <polygon points="10,10 22,24 6,26" fill="#94a3b8"/>
+          <polygon points="54,10 42,24 58,26" fill="#94a3b8"/>
+          <polygon points="13,13 21,23 10,24" fill="#e2e8f0"/>
+          <polygon points="51,13 43,23 54,24" fill="#e2e8f0"/>
+          <circle cx="32" cy="34" r="20" fill="#cbd5e1"/>
+          <ellipse cx="32" cy="42" rx="12" ry="10" fill="#f8fafc"/>
+          <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="25" cy="30" r="1" fill="#fff"/>
+          <circle cx="41" cy="30" r="1" fill="#fff"/>
+          <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
+          <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span>Classe des petits loups&nbsp;— Florence Zeghache</span>
+      </footer>
+    </section>
+  </main>
+
+<script>
+"use strict";
+
+/* ============================================================
+   ÉTAT DE L'OUTIL
+   - imageUrl : dataURL de l'image importée (ou null si aucune)
+   ============================================================ */
+let imageUrl = null;
+
+/* Petit raccourci pratique, utile si vous dupliquez ce fichier */
+const $ = id => document.getElementById(id);
+
+/* ============================================================
+   1) IMPORT DE L'IMAGE (PNG)
+   ============================================================ */
+$("fileImage").addEventListener("change", e => {
+  const file = e.target.files[0];
+  const statusEl = $("statImage");
+  if(!file) return;
+  if(!file.type.startsWith("image/")){
+    statusEl.className = "status ko";
+    statusEl.textContent = "⚠️ Fichier non reconnu comme image.";
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    imageUrl = ev.target.result;
+    statusEl.className = "status ok";
+    statusEl.textContent = "✅ Image chargée : " + file.name;
+  };
+  reader.readAsDataURL(file);
+});
+
+/* ============================================================
+   2) RENDU DE LA CONSIGNE (texte, police, taille)
+   ============================================================ */
+function renderConsigne(){
+  const texte = $("consigneText").value.trim() || "Consigne : ...";
+  const font  = $("fontName").value.trim() || "Segoe UI";
+  const sizePt = parseInt($("sizeConsigne").value, 10);
+
+  const el = $("sheetConsigne");
+  el.textContent = texte;
+  el.style.fontFamily = `'${font}', 'Segoe UI', sans-serif`;
+  el.style.fontSize = sizePt + "pt";
+}
+
+/* ============================================================
+   3) RENDU DE L'IMAGE (taille en % de la zone disponible)
+   ============================================================ */
+function renderImage(){
+  const zone = $("imageZone");
+  zone.innerHTML = "";
+
+  if(!imageUrl){
+    const ph = document.createElement("div");
+    ph.className = "placeholder";
+    ph.textContent = "Importez une image puis cliquez sur « Générer ».";
+    zone.appendChild(ph);
+    return;
+  }
+
+  const pct = parseInt($("sizeImage").value, 10) / 100;
+  const img = document.createElement("img");
+  img.src = imageUrl;
+  img.alt = "Image de la fiche";
+  // L'image ne dépasse jamais la zone disponible (contain), et sa taille
+  // maximale est pilotée par le pourcentage choisi via le slider.
+  img.style.maxWidth  = (pct * 100) + "%";
+  img.style.maxHeight = (pct * 100) + "%";
+  zone.appendChild(img);
+}
+
+/* ============================================================
+   GÉNÉRATION PRINCIPALE
+   (regroupe les deux rendus : consigne + image)
+   ============================================================ */
+function generate(){
+  renderConsigne();
+  renderImage();
+}
+
+/* ============================================================
+   ÉCOUTEURS — mise à jour en temps réel des sliders
+   ============================================================ */
+$("sizeConsigne").addEventListener("input", () => {
+  $("sizeConsigneVal").textContent = $("sizeConsigne").value + " pt";
+  renderConsigne();   // effet immédiat, sans attendre "Générer"
+});
+$("sizeImage").addEventListener("input", () => {
+  $("sizeImageVal").innerHTML = $("sizeImage").value + "&nbsp;%";
+  renderImage();      // effet immédiat, sans attendre "Générer"
+});
+
+/* ============================================================
+   BOUTONS
+   ============================================================ */
+$("btnGen").addEventListener("click", generate);
+$("btnPrint").addEventListener("click", () => window.print());
+
+/* Génère un premier aperçu au chargement de la page (consigne par défaut) */
+generate();
+</script>
+</body>
+</html>

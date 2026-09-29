@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boîte à outils pédagogiques - Les petits loups</title>
+  <style>
+    :root {
+      --bleu: #2563eb;
+      --bleu-fonce: #1d4ed8;
+      --texte: #1e293b;
+      --texte-doux: #64748b;
+      --fond: #eef2f7;
+      --carte: #ffffff;
+      --bordure: #dbe4ee;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: var(--texte);
+      background: var(--fond);
+    }
+    .header {
+      padding: 34px 20px 30px;
+      color: white;
+      text-align: center;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+    }
+    .wolf-logo {
+      display: inline-flex;
+      width: 76px;
+      height: 76px;
+      margin-bottom: 12px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.18);
+    }
+    .wolf-logo svg {
+      width: 58px;
+      height: 58px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 42px);
+      line-height: 1.15;
+    }
+    .header p {
+      margin: 10px 0 0;
+      font-size: 17px;
+      opacity: 0.95;
+    }
+    .main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 44px;
+    }
+    .intro {
+      margin: 0 0 24px;
+      text-align: center;
+      color: var(--texte-doux);
+      font-size: 16px;
+    }
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 22px;
+    }
+    .tool-card {
+      display: flex;
+      min-height: 280px;
+      padding: 24px;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      background: var(--carte);
+      border: 1px solid var(--bordure);
+      border-radius: 22px;
+      box-shadow: 0 7px 22px rgba(15, 23, 42, 0.08);
+      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    }
+    .tool-card:hover,
+    .tool-card:focus-visible {
+      transform: translateY(-5px);
+      border-color: #93c5fd;
+      box-shadow: 0 13px 28px rgba(15, 23, 42, 0.14);
+      outline: none;
+    }
+    .tool-icon {
+      display: flex;
+      width: 82px;
+      height: 82px;
+      margin-bottom: 17px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 22px;
+      font-size: 45px;
+      background: #eff6ff;
+    }
+    .tool-card:nth-child(2) .tool-icon { background: #fef3c7; }
+    .tool-card:nth-child(3) .tool-icon { background: #fce7f3; }
+    .tool-card:nth-child(4) .tool-icon { background: #dcfce7; }
+    .tool-card:nth-child(5) .tool-icon { background: #ede9fe; }
+    .tool-card:nth-child(6) .tool-icon { background: #ffe4e6; }
+    .tool-card:nth-child(7) .tool-icon { background: #e0f2fe; }
+    .tool-card:nth-child(8) .tool-icon { background: #f1f5f9; }
+    .tool-card:nth-child(9) .tool-icon { background: #fff7ed; }
+    .tool-card h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+    .tool-card p {
+      margin: 12px 0 20px;
+      flex-grow: 1;
+      color: var(--texte-doux);
+      line-height: 1.5;
+    }
+    .open-button {
+      display: inline-flex;
+      min-width: 130px;
+      padding: 11px 18px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: white;
+      background: var(--bleu);
+      border-radius: 10px;
+      font-weight: 700;
+    }
+    .tool-card:hover .open-button {
+      background: var(--bleu-fonce);
+    }
+    .footer {
+      display: flex;
+      padding: 20px;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: #475569;
+      background: #ffffff;
+      border-top: 1px solid var(--bordure);
+      font-weight: 600;
+      text-align: center;
+    }
+    .footer svg {
+      width: 40px;
+      height: 40px;
+      flex: 0 0 auto;
+    }
+    @media (max-width: 600px) {
+      .header {
+        padding-top: 25px;
+      }
+      .main {
+        width: min(100% - 22px, 1180px);
+        padding-top: 22px;
+      }
+      .tools-grid {
+        gap: 15px;
+      }
+      .tool-card {
+        min-height: 245px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="wolf-logo" aria-hidden="true">
+      <svg viewBox="0 0 64 64">
+        <polygon points="10,10 22,24 6,26" fill="#cbd5e1"/>
+        <polygon points="54,10 42,24 58,26" fill="#cbd5e1"/>
+        <polygon points="13,13 21,23 10,24" fill="#ffffff"/>
+        <polygon points="51,13 43,23 54,24" fill="#ffffff"/>
+        <circle cx="32" cy="34" r="20" fill="#e2e8f0"/>
+        <ellipse cx="32" cy="42" rx="12" ry="10" fill="#ffffff"/>
+        <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
+        <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
+        <circle cx="25" cy="30" r="1" fill="#ffffff"/>
+        <circle cx="41" cy="30" r="1" fill="#ffffff"/>
+        <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
+        <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h1>Boîte à outils pédagogiques</h1>
+    <p>Classe des petits loups · Florence Zeghache</p>
+  </header>
+  <main class="main">
+    <p class="intro">Cliquez sur une activité pour l'ouvrir.</p>
+    <section class="tools-grid" aria-label="Liste des outils pédagogiques">
+      <a class="tool-card" href="compter_entourer.html">
+        <div class="tool-icon" aria-hidden="true">🔍</div>
+        <h2>Compter et entourer</h2>
+        <p>Compter les éléments puis entourer la bonne réponse.</p>
+        <span class="open-button">Ouvrir <span aria-hidden="true">→</span></span>
+      </a>
+      <a class="tool-card" href="reconnaissance_lettres.html">
+        <div class="tool-icon" aria-hidden="true">🔤</div>
+        <h2>Reconnaissance des lettres</h2>
+        <p>Rechercher et colorier les lettres au milieu de chiffres et de symboles.</p>
+        <span class="open-button">Ouvrir <span aria-hidden="true">→</span></span>
+      </a>
+      <a class="tool-card" href="lettres_prenom.html">
+        <div class="tool-icon" aria-hidden="true">✏️</div>
+        <h2>Lettres du prénom</h2>
+        <p>Reconnaître l'initiale et les lettres de son prénom dans une grille.</p>
+        <span class="open-button">Ouvrir <span aria-hidden="true">→</span></span>
+      </a>
+      <a class="tool-card" href="numeration_des_doigts_chiffres.html">
+        <div class="tool-icon" aria-hidden="true">🖐️</div>
+        <h2>Numération doigts et chiffres</h2>
+        <p>Associer les différentes représentations des nombres.</p>
+        <span class="open-button">Ouvrir <span aria-hidden="true">→</span></span>
+      </a>
+      <a class="tool-card" href="completer_collection.html">
+        <div class="tool-icon" aria-hidden="true">🎯</div>
+        <h2>Compléter une collection</h2>
+        <p>Ajouter ou coller les éléments manquants pour atteindre le nombre demandé.</p>
+        <span class="open-button">Ouvrir <span aria-hidden="true">→</span></span>
+      </a>
+      <a class="tool-card" href="entourer_nombre_lettre.html">
+        <div class="tool-icon" aria-hidden="true">🔎</div>
+        <h2>Entourer le nombre ou la lettre</h2>
+        <p>Retrouver et entourer le bon nombre ou la bonne lettre dans une liste.</p>
+        <span class="open-button">Ouvrir <span aria-hidden="true">→</span></span>
+      </a>
+      <a class="tool-card" href="gabarit_vierge_1image.html">
+        <div class="tool-icon" aria-hidden="true">🖼️</div>
+        <h2>Gabarit vierge (1 image)</h2>
+        <p>Habiller n'importe quelle image en 2 clics avec une consigne personnalisée.</p>
+        <span class="open-button">Ouvrir <span aria-hidden="true">→</span></span>
+      </a>
+      <a class="tool-card" href="gabarit_vierge_2images.html">
+        <div class="tool-icon" aria-hidden="true">🖼️</div>
+        <h2>Gabarit vierge (2 images)</h2>
+        <p>Composer une fiche personnalisée avec deux images, côte à côte ou empilées.</p>
+        <span class="open-button">Ouvrir <span aria-hidden="true">→</span></span>
+      </a>
+      <a class="tool-card" href="fiche_legendes.html">
+        <div class="tool-icon" aria-hidden="true">🏷️</div>
+        <h2>Légendes à découper</h2>
+        <p>Compléter une image avec des cadres de légende (8 maxi) et des étiquettes à découper et coller.</p>
+        <span class="open-button">Ouvrir <span aria-hidden="true">→</span></span>
+      </a>
+            <a class="tool-card" href="fiche_legendes_v2.html">
+        <div class="tool-icon" aria-hidden="true">🏷️</div>
+        <h2>Légendes à découper</h2>
+        <p>Compléter une image avec des cadres de légende (6 maxi) et des étiquettes à découper et coller.</p>
+        <span class="open-button">Ouvrir <span aria-hidden="true">→</span></span>
+      </a>
+    </section>
+  </main>
+  <footer class="footer">
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <polygon points="10,10 22,24 6,26" fill="#94a3b8"/>
+      <polygon points="54,10 42,24 58,26" fill="#94a3b8"/>
+      <polygon points="13,13 21,23 10,24" fill="#e2e8f0"/>
+      <polygon points="51,13 43,23 54,24" fill="#e2e8f0"/>
+      <circle cx="32" cy="34" r="20" fill="#cbd5e1"/>
+      <ellipse cx="32" cy="42" rx="12" ry="10" fill="#f8fafc"/>
+      <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
+      <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
+      <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
+      <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    </svg>
+    <span>Classe des petits loups · Florence Zeghache</span>
+  </footer>
+</body>
+</html>

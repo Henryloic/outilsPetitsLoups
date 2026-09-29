@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche de coloriage – Prénoms</title>
+<style>
+  /* ============================================================
+     STYLES GÉNÉRAUX (écran)
+     ============================================================ */
+  :root{
+    --bleu:#2563eb;
+    --gris:#f1f5f9;
+    --bord:#cbd5e1;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Arial,sans-serif;
+    background:#e2e8f0;
+    color:#0f172a;
+    display:flex;
+    gap:20px;
+    padding:20px;
+    align-items:flex-start;
+  }
+
+  /* -------- Panneau de commandes (masqué à l'impression) -------- */
+  .controls{
+    flex:0 0 320px;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 4px 18px rgba(0,0,0,.08);
+    padding:22px;
+    position:sticky;
+    top:20px;
+  }
+  .controls h1{font-size:20px;margin:0 0 4px;}
+  .controls p.sub{margin:0 0 18px;color:#64748b;font-size:13px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-weight:600;font-size:13px;margin-bottom:6px;}
+  .field select,.field input[type=file],.field input[type=text]{
+    width:100%;padding:8px;border:1px solid var(--bord);
+    border-radius:8px;font-size:14px;background:#fff;
+  }
+  .radio-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .radio-row label{
+    display:flex;align-items:center;gap:6px;font-weight:500;
+    background:var(--gris);padding:8px 10px;border-radius:8px;
+    cursor:pointer;font-size:13px;border:1px solid transparent;flex:1;
+  }
+  .radio-row input{accent-color:var(--bleu);}
+  .buttons{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .buttons button{
+    padding:11px;border:none;border-radius:9px;font-size:14px;
+    font-weight:600;cursor:pointer;color:#fff;transition:.15s;
+  }
+  #btnGen{background:var(--bleu);}
+  #btnRegen{background:#0891b2;}
+  #btnPrint{background:#16a34a;}
+  .buttons button:hover{filter:brightness(1.08);}
+  .buttons button:disabled{background:#94a3b8;cursor:not-allowed;}
+  .hint{font-size:12px;color:#64748b;margin-top:14px;line-height:1.4;}
+  /* Slider de taille des lettres */
+  .slider-row{display:flex;align-items:center;gap:10px;}
+  .slider-row input[type=range]{flex:1;accent-color:var(--bleu);}
+  #sizeVal{font-weight:700;color:var(--bleu);min-width:44px;text-align:right;font-size:13px;}
+
+  /* ============================================================
+     LA FICHE A4
+     ============================================================ */
+  .preview{flex:1;display:flex;justify-content:center;}
+  .sheet{
+    width:210mm;
+    height:297mm;
+    background:#fff;
+    box-shadow:0 6px 24px rgba(0,0,0,.15);
+    padding:10mm;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  /* En-tête : prénom + consigne */
+  .sheet-header{
+    width:100%;
+    min-height:34mm;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+  #sheetName{
+    font-weight:700;
+    line-height:1;
+    margin:0 0 4mm;
+  }
+  #sheetConsigne{
+    font-size:6mm;
+    line-height:1.15;
+    max-width:180mm;
+  }
+  /* La grille */
+  #grid{
+    display:grid;
+    /* colonnes/lignes fixées dynamiquement en JS pour garantir des cases carrées */
+  }
+  .cell{
+    border:0.4mm solid #111;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    line-height:1;
+    overflow:hidden;
+    font-weight:600;
+  }
+  .placeholder{
+    color:#94a3b8;font-size:15px;text-align:center;margin-top:40mm;
+  }
+  /* Pied de page de la fiche */
+  .sheet-footer{
+    margin-top:auto;               /* colle le pied en bas de la zone A4 */
+    padding-top:4mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:3mm;
+    font-size:5mm;
+    font-weight:600;
+    color:#475569;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+  }
+  .sheet-footer svg{flex:0 0 auto;}
+
+  /* ============================================================
+     IMPRESSION : on masque tout sauf la fiche
+     ============================================================ */
+  @media print{
+    @page{ size:A4 portrait; margin:0; }
+    body{background:#fff;padding:0;display:block;}
+    .controls{display:none !important;}
+    .preview{display:block;}
+    .sheet{
+      box-shadow:none;
+      width:210mm;height:297mm;
+      page-break-after:avoid;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ================= PANNEAU DE COMMANDES ================= -->
+  <aside class="controls">
+    <h1>🎨 Fiches de coloriage</h1>
+    <p class="sub">Outil autonome pour l'apprentissage du prénom.</p>
+
+    <div class="field">
+      <label for="fileInput">1. Importer la liste (.txt, un prénom par ligne)</label>
+      <input type="file" id="fileInput" accept=".txt,text/plain">
+    </div>
+
+    <div class="field">
+      <label for="selName">2. Choisir un élève</label>
+      <select id="selName"><option value="">— Importer d'abord un fichier —</option></select>
+    </div>
+
+    <div class="field">
+      <label>3. Mode d'exercice</label>
+      <div class="radio-row">
+        <label><input type="radio" name="mode" value="initiale" checked> Initiale</label>
+        <label><input type="radio" name="mode" value="prenom"> Prénom</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>4. Casse des lettres</label>
+      <div class="radio-row">
+        <label><input type="radio" name="casse" value="min" checked> minuscules</label>
+        <label><input type="radio" name="casse" value="maj"> MAJUSCULES</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="selFont">5. Police adaptée</label>
+      <select id="selFont">
+        <optgroup label="Recommandées (apprentissage)">
+          <option value="'Comic Sans MS','Comic Sans',cursive">Comic Sans (rond, lisible)</option>
+          <option value="'Script Ecole 2','Segoe UI',sans-serif">Script</option>
+          <option value="'SimpleRonde','Marelle'">Cursive</option>
+          <option value="Arial,Helvetica,sans-serif">Arial (bâton)</option>
+          <option value="'Tahoma','Verdana',sans-serif">Tahoma / Verdana</option>
+        </optgroup>
+      </select>
+      <button id="btnLoadFonts" type="button"
+        style="width:100%;margin-top:8px;padding:9px;border:1px solid var(--bord);
+        border-radius:8px;background:var(--gris);cursor:pointer;font-size:13px;font-weight:600;">
+        📥 Charger les polices du PC
+      </button>
+      <input type="text" id="fontManual" placeholder="…ou tapez un nom de police (ex. Cursive Dumont)">
+      <p class="hint" id="fontHint" style="margin-top:6px;">
+        Le bouton fonctionne sur <b>Chrome / Edge</b> (autorisation demandée une fois).
+        Sinon, tapez directement le nom exact d'une police installée.
+      </p>
+    </div>
+
+    <div class="field">
+      <label for="sizeSlider">6. Taille des lettres dans les cases</label>
+      <div class="slider-row">
+        <input type="range" id="sizeSlider" min="35" max="90" step="1" value="62">
+        <span id="sizeVal">62&nbsp;%</span>
+      </div>
+      <p class="hint" style="margin-top:6px;">
+        Ajustez si une police déborde ou paraît trop petite. L'aperçu se met à jour
+        instantanément, sans régénérer la grille.
+      </p>
+    </div>
+
+    <div class="buttons">
+      <button id="btnGen">Générer</button>
+      <button id="btnRegen">Régénérer</button>
+      <button id="btnPrint">Imprimer</button>
+    </div>
+
+    <p class="hint">Astuce : « Régénérer » recalcule un placement aléatoire différent pour le même élève. L'impression masque automatiquement ce panneau.</p>
+  </aside>
+
+  <!-- ================= APERÇU DE LA FICHE A4 ================= -->
+  <main class="preview">
+    <section class="sheet" id="sheet">
+      <div class="sheet-header">
+        <div id="sheetName"></div>
+        <div id="sheetConsigne"></div>
+      </div>
+      <div id="grid"><div class="placeholder">Importez un fichier, choisissez un élève,<br>puis cliquez sur « Générer ».</div></div>
+
+      <!-- Pied de page de la fiche -->
+      <footer class="sheet-footer">
+        <svg viewBox="0 0 64 64" width="10mm" height="10mm" aria-hidden="true">
+          <!-- Petit loup "sympa" : oreilles, tête grise, museau, yeux, nez -->
+          <polygon points="10,10 22,24 6,26" fill="#94a3b8"/>
+          <polygon points="54,10 42,24 58,26" fill="#94a3b8"/>
+          <polygon points="13,13 21,23 10,24" fill="#e2e8f0"/>
+          <polygon points="51,13 43,23 54,24" fill="#e2e8f0"/>
+          <circle cx="32" cy="34" r="20" fill="#cbd5e1"/>
+          <ellipse cx="32" cy="42" rx="12" ry="10" fill="#f8fafc"/>
+          <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="25" cy="30" r="1" fill="#fff"/>
+          <circle cx="41" cy="30" r="1" fill="#fff"/>
+          <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
+          <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span>Classe des petits loups&nbsp;— Florence Zeghache</span>
+      </footer>
+    </section>
+  </main>
+
+<script>
+"use strict";
+
+/* ============================================================
+   CONSTANTES DE LA GRILLE
+   ============================================================ */
+const COLS = 7;              // colonnes demandées
+const ROWS = 9;              // lignes demandées
+const TOTAL = COLS * ROWS;   // 63 cases
+const NB_INITIALE = 18;      // occurrences imposées en mode Initiale
+const MAX_PAR_LIGNE = 3;     // maximum d'initiales par ligne
+const NB_PAR_LETTRE = 3;     // occurrences par lettre en mode Prénom
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+// Mémorise la dernière grille/police pour redessiner sans régénérer (slider de taille)
+let lastGrid = null;
+let lastFont = null;
+
+/* ============================================================
+   PETITS UTILITAIRES
+   ============================================================ */
+const randInt = n => Math.floor(Math.random() * n);
+function shuffle(arr){                       // mélange de Fisher-Yates
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = randInt(i+1);
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+// Retire les accents et ne garde que les lettres A-Z (majuscules)
+function normalize(str){
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+            .toUpperCase().replace(/[^A-Z]/g,"");
+}
+// Applique la casse choisie à une lettre
+function applyCase(letter, casse){
+  return casse === "maj" ? letter.toUpperCase() : letter.toLowerCase();
+}
+// Facteur de taille choisi via le slider (0.35 à 0.90 du côté de la case)
+function sizeFactor(){
+  return parseInt(document.getElementById("sizeSlider").value, 10) / 100;
+}
+
+/* ============================================================
+   PLACEMENT — MODE INITIALE
+   18 initiales, ≤ 3 par ligne, jamais côte à côte horizontalement.
+   ============================================================ */
+function pickNonAdjacent(k){
+  // choisit k colonnes (0..6) non adjacentes horizontalement
+  if(k <= 0) return [];
+  for(let essai=0; essai<200; essai++){
+    const chosen = [];
+    for(const c of shuffle([...Array(COLS).keys()])){
+      if(chosen.every(x => Math.abs(x-c) > 1)){
+        chosen.push(c);
+        if(chosen.length === k) return chosen;
+      }
+    }
+  }
+  return []; // sécurité (ne devrait pas arriver pour k ≤ 3)
+}
+function buildInitiale(){
+  const grid = Array.from({length:ROWS}, () => Array(COLS).fill(null));
+  // Répartition : 2 par ligne = 18, puis on brasse en gardant 0..3 et somme=18
+  const counts = Array(ROWS).fill(NB_INITIALE / ROWS); // 2 partout
+  for(let i=0;i<60;i++){
+    const a = randInt(ROWS), b = randInt(ROWS);
+    if(counts[a] > 0 && counts[b] < MAX_PAR_LIGNE){ counts[a]--; counts[b]++; }
+  }
+  for(let r=0;r<ROWS;r++){
+    for(const c of pickNonAdjacent(counts[r])) grid[r][c] = "@"; // marqueur temporaire
+  }
+  return grid;
+}
+
+/* ============================================================
+   PLACEMENT — MODE PRÉNOM
+   3 occurrences de chaque lettre distincte,
+   jamais deux lettres identiques adjacentes (horizontal/vertical).
+   ============================================================ */
+function neighborHas(grid, r, c, L){
+  const d = [[-1,0],[1,0],[0,-1],[0,1]];
+  for(const [dr,dc] of d){
+    const nr=r+dr, nc=c+dc;
+    if(nr>=0 && nr<ROWS && nc>=0 && nc<COLS && grid[nr][nc] === L) return true;
+  }
+  return false;
+}
+function buildPrenom(lettres){
+  // lettres = tableau des lettres distinctes (déjà normalisées)
+  const required = [];
+  lettres.forEach(L => { for(let i=0;i<NB_PAR_LETTRE;i++) required.push(L); });
+
+  const coords = [];
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) coords.push([r,c]);
+
+  for(let essai=0; essai<800; essai++){
+    const grid = Array.from({length:ROWS}, () => Array(COLS).fill(null));
+    let ok = true;
+    for(const L of shuffle(required)){
+      let pose = false;
+      for(const [r,c] of shuffle(coords)){       // on ré-mélange pour disperser
+        if(grid[r][c] !== null) continue;
+        if(neighborHas(grid, r, c, L)) continue;
+        grid[r][c] = L; pose = true; break;
+      }
+      if(!pose){ ok = false; break; }
+    }
+    if(ok) return grid;
+  }
+  return null; // échec très improbable
+}
+
+/* ============================================================
+   REMPLISSAGE DES DISTRACTEURS
+   On complète les cases vides avec des lettres qui NE font PAS
+   partie de la réponse (pour ne pas fausser le coloriage).
+   ============================================================ */
+function fillDistractors(grid, forbidden, casse){
+  const pool = ALPHABET.filter(l => !forbidden.includes(l));
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      if(grid[r][c] === null){
+        grid[r][c] = applyCase(pool[randInt(pool.length)], casse);
+      }
+    }
+  }
+}
+
+/* ============================================================
+   RENDU À L'ÉCRAN + MISE À L'ÉCHELLE (cases carrées)
+   ============================================================ */
+function computeCell(){
+  // Zone utile intérieure de la feuille (A4 - marges 10mm) = 190 x 277 mm
+  const innerW = 190, innerH = 277, headerMm = 42;
+  // La case est le plus petit côté possible pour tenir en largeur ET en hauteur
+  return Math.min(innerW / COLS, (innerH - headerMm) / ROWS);
+}
+function renderGrid(grid, font){
+  const cell = computeCell();
+  const gridEl = document.getElementById("grid");
+  gridEl.innerHTML = "";
+  gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${cell}mm)`;
+  gridEl.style.gridTemplateRows    = `repeat(${ROWS}, ${cell}mm)`;
+  gridEl.style.fontFamily = font;
+
+  const factor = sizeFactor();   // taille pilotée par le slider
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const d = document.createElement("div");
+      d.className = "cell";
+      d.textContent = grid[r][c];
+      // Lettres agrandies pour remplir la case sans débordement (facteur réglable)
+      d.style.fontSize = (cell * factor) + "mm";
+      gridEl.appendChild(d);
+    }
+  }
+}
+
+/* ============================================================
+   GÉNÉRATION PRINCIPALE
+   ============================================================ */
+function generate(){
+  const nom  = document.getElementById("selName").value;
+  if(!nom){ alert("Veuillez d'abord choisir un élève dans la liste."); return; }
+
+  const mode  = document.querySelector('input[name=mode]:checked').value;
+  const casse = document.querySelector('input[name=casse]:checked').value;
+  const font  = getFont();   // liste déroulante OU saisie libre (prioritaire)
+
+  const norm  = normalize(nom);                 // ex. "Éloïse" -> "ELOISE"
+  if(!norm){ alert("Ce prénom ne contient aucune lettre exploitable."); return; }
+
+  const affiche = casse === "maj" ? norm : norm.charAt(0) + norm.slice(1).toLowerCase();
+  const initialeLettre = norm.charAt(0);
+  const lettresDistinctes = [...new Set(norm.split(""))];
+
+  let grid, consigne, forbidden;
+
+  if(mode === "initiale"){
+    // Contrôle de cohérence (toujours vrai ici, mais on protège)
+    if(NB_INITIALE > ROWS * MAX_PAR_LIGNE){
+      alert("Impossible : trop d'initiales pour le nombre de lignes."); return;
+    }
+    grid = buildInitiale();
+    // Remplace le marqueur "@" par l'initiale à la bonne casse
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
+      if(grid[r][c] === "@") grid[r][c] = applyCase(initialeLettre, casse);
+    forbidden = [initialeLettre];
+    consigne = `Colorie toutes les cases qui contiennent la première lettre de ton prénom.`;
+  }
+  else{ // mode prénom
+    const besoin = NB_PAR_LETTRE * lettresDistinctes.length;
+    if(besoin > TOTAL){
+      alert(`Impossible : ${lettresDistinctes.length} lettres × ${NB_PAR_LETTRE} = ${besoin} cases demandées, `
+          + `mais la grille n'en compte que ${TOTAL}. Choisissez le mode « Initiale » pour ce prénom.`);
+      return;
+    }
+    grid = buildPrenom(lettresDistinctes);
+    if(!grid){ alert("Placement impossible avec ces contraintes. Réessayez (Régénérer)."); return; }
+    // Applique la casse aux lettres du prénom
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
+      if(grid[r][c] !== null) grid[r][c] = applyCase(grid[r][c], casse);
+    forbidden = lettresDistinctes;
+    consigne = `Colorie toutes les cases qui contiennent les lettres de ton prénom.`;
+  }
+
+  // Distracteurs (lettres hors réponse) dans les cases restantes
+  fillDistractors(grid, forbidden, casse);
+
+  // Mise à jour de l'en-tête
+  const nameEl = document.getElementById("sheetName");
+  nameEl.textContent = affiche;
+  nameEl.style.fontFamily = font;
+  nameEl.style.fontSize = "7mm";   // prénom réduit — retour enseignante
+  document.getElementById("sheetConsigne").textContent = consigne;
+
+  // Mémorise pour le slider (redessin sans régénérer) puis rend
+  lastGrid = grid;
+  lastFont = font;
+  renderGrid(grid, font);
+}
+
+/* ============================================================
+   LECTURE DU FICHIER TXT
+   ============================================================ */
+document.getElementById("fileInput").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const lignes = ev.target.result
+      .split(/\r?\n/)
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
+    const sel = document.getElementById("selName");
+    if(lignes.length === 0){
+      sel.innerHTML = '<option value="">Fichier vide</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">— Choisir un élève —</option>'
+      + lignes.map(p => `<option value="${p.replace(/"/g,'&quot;')}">${p}</option>`).join("");
+  };
+  reader.readAsText(file, "UTF-8");
+});
+
+/* ============================================================
+   POLICES DU PC (API Local Font Access — Chrome/Edge)
+   ============================================================ */
+document.getElementById("btnLoadFonts").addEventListener("click", async () => {
+  const hint = document.getElementById("fontHint");
+  if(!("queryLocalFonts" in window)){
+    hint.innerHTML = "⚠️ Votre navigateur ne permet pas de lister les polices. "
+      + "Utilisez <b>Chrome</b> ou <b>Edge</b>, ou tapez le nom de la police dans le champ ci-dessus.";
+    return;
+  }
+  try{
+    const fonts = await window.queryLocalFonts();          // demande l'autorisation
+    const familles = [...new Set(fonts.map(f => f.family))].sort((a,b) => a.localeCompare(b,'fr'));
+    const sel = document.getElementById("selFont");
+    // On ajoute un groupe "Polices du PC" à la suite des recommandées
+    let grp = document.getElementById("grpPC");
+    if(grp) grp.remove();
+    grp = document.createElement("optgroup");
+    grp.id = "grpPC";
+    grp.label = `Polices du PC (${familles.length})`;
+    familles.forEach(fam => {
+      const o = document.createElement("option");
+      o.value = `'${fam}'`;      // on cite le nom pour gérer les espaces
+      o.textContent = fam;
+      o.style.fontFamily = `'${fam}'`;  // aperçu direct dans la liste
+      grp.appendChild(o);
+    });
+    sel.appendChild(grp);
+    hint.innerHTML = `✅ ${familles.length} polices chargées ! Choisissez-la dans la liste déroulante.`;
+  }catch(err){
+    hint.innerHTML = "⚠️ Autorisation refusée ou indisponible. "
+      + "Vous pouvez taper le nom de la police dans le champ ci-dessus.";
+  }
+});
+
+// Saisie libre : elle est prioritaire si elle est renseignée
+function getFont(){
+  const manuel = document.getElementById("fontManual").value.trim();
+  if(manuel) return `'${manuel}', sans-serif`;          // secours universel
+  return document.getElementById("selFont").value;
+}
+
+/* ============================================================
+   SLIDER DE TAILLE DES LETTRES
+   Redessine la grille existante sans changer le placement.
+   ============================================================ */
+const sizeSlider = document.getElementById("sizeSlider");
+sizeSlider.addEventListener("input", () => {
+  document.getElementById("sizeVal").innerHTML = sizeSlider.value + "&nbsp;%";
+  // Si une fiche est déjà générée, on la redessine à la nouvelle taille
+  if(lastGrid) renderGrid(lastGrid, lastFont);
+});
+
+/* ============================================================
+   BOUTONS
+   ============================================================ */
+document.getElementById("btnGen").addEventListener("click", generate);
+document.getElementById("btnRegen").addEventListener("click", generate); // nouveau tirage aléatoire
+document.getElementById("btnPrint").addEventListener("click", () => window.print());
+</script>
+</body>
+</html>

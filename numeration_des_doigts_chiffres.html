@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche – Numération (Pictchou + Simpledice)</title>
+<style>
+  /* ============================================================
+     STYLES GÉNÉRAUX (écran)
+     ============================================================ */
+  :root{
+    --bleu:#2563eb;
+    --gris:#f1f5f9;
+    --bord:#cbd5e1;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Arial,sans-serif;
+    background:#e2e8f0;
+    color:#0f172a;
+    display:flex;
+    gap:20px;
+    padding:20px;
+    align-items:flex-start;
+  }
+
+  /* -------- Panneau de commandes (masqué à l'impression) -------- */
+  .controls{
+    flex:0 0 340px;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 4px 18px rgba(0,0,0,.08);
+    padding:22px;
+    position:sticky;
+    top:20px;
+    max-height:calc(100vh - 40px);
+    overflow-y:auto;
+  }
+  .controls h1{font-size:20px;margin:0 0 4px;}
+  .controls p.sub{margin:0 0 18px;color:#64748b;font-size:13px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-weight:600;font-size:13px;margin-bottom:6px;}
+  .field input[type=text]{
+    width:100%;padding:8px;border:1px solid var(--bord);
+    border-radius:8px;font-size:14px;background:#fff;
+  }
+  .buttons{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .buttons button{
+    padding:11px;border:none;border-radius:9px;font-size:14px;
+    font-weight:600;cursor:pointer;color:#fff;transition:.15s;
+  }
+  #btnGen{background:var(--bleu);}
+  #btnRegen{background:#0891b2;}
+  #btnPrint{background:#16a34a;}
+  .buttons button:hover{filter:brightness(1.08);}
+  .hint{font-size:12px;color:#64748b;margin-top:8px;line-height:1.4;}
+  .box-info{background:#dbeafe;border:1px solid #93c5fd;border-radius:8px;
+    padding:8px 10px;font-size:12px;color:#1e3a8a;margin-top:6px;line-height:1.4;}
+  /* Sliders */
+  .slider-row{display:flex;align-items:center;gap:10px;}
+  .slider-row input[type=range]{flex:1;accent-color:var(--bleu);}
+  .slider-row .val{font-weight:700;color:var(--bleu);min-width:44px;text-align:right;font-size:13px;}
+
+  /* ============================================================
+     LA FICHE A4
+     ============================================================ */
+  .preview{flex:1;display:flex;justify-content:center;}
+  .sheet{
+    width:210mm;
+    height:297mm;
+    background:#fff;
+    box-shadow:0 6px 24px rgba(0,0,0,.15);
+    padding:10mm;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .sheet-header{
+    width:100%;
+    min-height:16mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+  #sheetConsigne{
+    font-size:6.5mm;
+    font-weight:700;
+    line-height:1.15;
+    max-width:185mm;
+  }
+  #grid{
+    width:100%;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-around; /* répartition harmonieuse sur la hauteur */
+  }
+  .grow{
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+  }
+  .gcell{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:1mm;                       /* écart entre 2 dés d'une paire */
+    border:0.5mm solid #111;
+    border-radius:2mm;
+    background:#fff;
+    line-height:1;
+    overflow:hidden;
+  }
+  .gcell span{line-height:1;}
+  .placeholder{
+    color:#94a3b8;font-size:15px;text-align:center;margin:auto;padding:0 20mm;
+  }
+  .sheet-footer{
+    flex:0 0 auto;
+    padding-top:3mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:3mm;
+    font-size:5mm;
+    font-weight:600;
+    color:#475569;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+  }
+  .sheet-footer svg{flex:0 0 auto;}
+
+  /* ============================================================
+     IMPRESSION
+     ============================================================ */
+  @media print{
+    @page{ size:A4 portrait; margin:0; }
+    body{background:#fff;padding:0;display:block;}
+    .controls{display:none !important;}
+    .preview{display:block;}
+    .sheet{ box-shadow:none; width:210mm;height:297mm; page-break-after:avoid; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ================= PANNEAU DE COMMANDES ================= -->
+  <aside class="controls">
+    <h1>🎲 Numération (3 représentations)</h1>
+    <p class="sub">Associer main, dé et chiffre d'un même nombre.</p>
+
+    <div class="field">
+      <label for="fontPict">Police Main &amp; Chiffre (Pictchou)</label>
+      <input type="text" id="fontPict" value="Pictchou">
+      <p class="hint">Nom exact de la police installée pour les mains et les chiffres.</p>
+    </div>
+
+    <div class="field">
+      <label for="fontDe">Police du Dé (Simpledice)</label>
+      <input type="text" id="fontDe" value="Simpledice">
+      <p class="hint">Par défaut « Simpledice ». Modifiable si votre police porte un autre nom.</p>
+    </div>
+
+    <div class="field">
+      <label for="deCodes">Codes du dé (faces 1 à 6)</label>
+      <input type="text" id="deCodes" value="ABCDEF">
+      <p class="hint">
+        Caractères produisant les faces 1, 2, 3, 4, 5, 6. Par défaut <b>ABCDEF</b>
+        (A = 1 point … F = 6 points), comme Simpledice.
+      </p>
+      <div class="box-info">
+        🎲 <b>Nombres 7 à 10</b> : représentés par <b>deux dés</b> (6 + le reste).
+        Ex. 7 = 6+1, 8 = 6+2, 9 = 6+3, 10 = 6+4.
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="rowsSlider">Nombre de lignes (valeurs 1…n)</label>
+      <div class="slider-row">
+        <input type="range" id="rowsSlider" min="3" max="10" step="1" value="6">
+        <span class="val" id="rowsVal">6</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="sizeMain">Taille — colonne Main</label>
+      <div class="slider-row">
+        <input type="range" id="sizeMain" min="35" max="90" step="1" value="60">
+        <span class="val" id="sizeMainVal">60&nbsp;%</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="sizeDe">Taille — colonne Dé</label>
+      <div class="slider-row">
+        <input type="range" id="sizeDe" min="35" max="90" step="1" value="60">
+        <span class="val" id="sizeDeVal">60&nbsp;%</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="sizeChiffre">Taille — colonne Chiffre</label>
+      <div class="slider-row">
+        <input type="range" id="sizeChiffre" min="35" max="90" step="1" value="60">
+        <span class="val" id="sizeChiffreVal">60&nbsp;%</span>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button id="btnGen">Générer</button>
+      <button id="btnRegen">Régénérer</button>
+      <button id="btnPrint">Imprimer</button>
+    </div>
+
+    <p class="hint">Ordre des colonnes : <b>Main · Dé · Chiffre</b>. « Régénérer » recalcule un nouveau placement. L'impression masque ce panneau.</p>
+  </aside>
+
+  <!-- ================= APERÇU DE LA FICHE A4 ================= -->
+  <main class="preview">
+    <section class="sheet" id="sheet">
+      <div class="sheet-header">
+        <div id="sheetConsigne">Consigne : colorie de la même couleur les représentations d'un même nombre.</div>
+      </div>
+
+      <div id="grid"><div class="placeholder">Renseignez vos polices, réglez le nombre de lignes, puis cliquez sur « Générer ».</div></div>
+
+      <footer class="sheet-footer">
+        <svg viewBox="0 0 64 64" width="10mm" height="10mm" aria-hidden="true">
+          <polygon points="10,10 22,24 6,26" fill="#94a3b8"/>
+          <polygon points="54,10 42,24 58,26" fill="#94a3b8"/>
+          <polygon points="13,13 21,23 10,24" fill="#e2e8f0"/>
+          <polygon points="51,13 43,23 54,24" fill="#e2e8f0"/>
+          <circle cx="32" cy="34" r="20" fill="#cbd5e1"/>
+          <ellipse cx="32" cy="42" rx="12" ry="10" fill="#f8fafc"/>
+          <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="25" cy="30" r="1" fill="#fff"/>
+          <circle cx="41" cy="30" r="1" fill="#fff"/>
+          <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
+          <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span>Classe des petits loups&nbsp;— Florence Zeghache</span>
+      </footer>
+    </section>
+  </main>
+
+<script>
+"use strict";
+
+/* ============================================================
+   CORRESPONDANCE MAIN — POLICE PICTCHOU
+   Main : K L M N O Q R S T U   (P n'est PAS utilisé)  (K=1 … U=10)
+   ============================================================ */
+const MAIN_LETTERS = ["K","L","M","N","O","Q","R","S","T","U"]; // P sauté
+function glyphMain(v)    { return MAIN_LETTERS[v-1]; }
+function glyphChiffre(v) { return String(v); }         // chiffre rendu en Pictchou
+
+/* ============================================================
+   DÉ — POLICE SIMPLEDICE (configurable)
+   deCodes = caractères des faces 1..6 (par défaut "ABCDEF").
+   Valeurs 1..6  -> un seul dé.
+   Valeurs 7..10 -> DEUX dés : un 6 + le reste (6+1, 6+2, 6+3, 6+4).
+   Retourne un TABLEAU de caractères (1 ou 2 éléments).
+   ============================================================ */
+function glyphDeChars(v, deCodes){
+  if(v <= 6) return [ deCodes[v-1] ];
+  // v entre 7 et 10 : premier dé = 6, second dé = v-6
+  return [ deCodes[5], deCodes[(v-6)-1] ];
+}
+
+/* ============================================================
+   UTILITAIRES
+   ============================================================ */
+const randInt = n => Math.floor(Math.random() * n);
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=randInt(i+1); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+/* ============================================================
+   PLACEMENT DES VALEURS
+   3 colonnes contenant chacune 1..n, mélangées, sans qu'aucun nombre
+   ne soit aligné sur la même ligne (chaque ligne = 3 valeurs différentes).
+   ============================================================ */
+function buildColumns(n){
+  const base = [];
+  for(let v=1;v<=n;v++) base.push(v);
+  for(let essai=0; essai<500; essai++){
+    const colMain = shuffle(base);
+    const colDe   = shuffle(base);
+    const colChif = shuffle(base);
+    let ok = true;
+    for(let i=0;i<n;i++){
+      if(colMain[i]===colDe[i] || colMain[i]===colChif[i] || colDe[i]===colChif[i]){ ok=false; break; }
+    }
+    if(ok) return { colMain, colDe, colChif };
+  }
+  const b = shuffle(base);
+  return {
+    colMain: b.slice(),
+    colDe:   b.map((_,i)=>b[(i+1)%n]),
+    colChif: b.map((_,i)=>b[(i+2)%n])
+  };
+}
+
+/* ============================================================
+   DIMENSIONS (cases carrées identiques, tenue sur 1 page A4)
+   ============================================================ */
+function computeBox(n){
+  const usableW = 190;
+  const rowsAreaH = 277 - 32;
+  const boxByH = (rowsAreaH / n) * 0.82;
+  const boxByW = (usableW / 3) * 0.82;
+  return Math.max(8, Math.min(boxByH, boxByW));
+}
+const factMain    = () => parseInt(document.getElementById("sizeMain").value,10)/100;
+const factDe      = () => parseInt(document.getElementById("sizeDe").value,10)/100;
+const factChiffre = () => parseInt(document.getElementById("sizeChiffre").value,10)/100;
+
+/* ============================================================
+   RENDU DE LA GRILLE
+   ============================================================ */
+let lastData = null;
+
+function makeCell(box){
+  const cell = document.createElement("div");
+  cell.className = "gcell";
+  cell.style.width  = box + "mm";
+  cell.style.height = box + "mm";
+  return cell;
+}
+
+function renderGrid(data){
+  const { cols, n, fontPict, fontDe, deCodes } = data;
+  const box = computeBox(n);
+  const gridEl = document.getElementById("grid");
+  gridEl.innerHTML = "";
+
+  const fM = box * factMain();
+  const fD = box * factDe();
+  const fC = box * factChiffre();
+
+  for(let i=0;i<n;i++){
+    const row = document.createElement("div");
+    row.className = "grow";
+
+    /* --- Colonne MAIN (Pictchou) --- */
+    const cMain = makeCell(box);
+    cMain.style.fontFamily = fontPict;
+    cMain.style.fontSize = fM + "mm";
+    cMain.textContent = glyphMain(cols.colMain[i]);
+    row.appendChild(cMain);
+
+    /* --- Colonne DÉ (Simpledice), 1 ou 2 dés --- */
+    const cDe = makeCell(box);
+    cDe.style.fontFamily = fontDe;
+    const chars = glyphDeChars(cols.colDe[i], deCodes);
+    // 2 dés -> on réduit la taille pour que la paire tienne dans la case carrée
+    const deSize = (chars.length === 2) ? fD * 0.52 : fD;
+    for(const ch of chars){
+      const s = document.createElement("span");
+      s.style.fontSize = deSize + "mm";
+      s.textContent = ch;
+      cDe.appendChild(s);
+    }
+    row.appendChild(cDe);
+
+    /* --- Colonne CHIFFRE (Pictchou) --- */
+    const cChif = makeCell(box);
+    cChif.style.fontFamily = fontPict;
+    cChif.style.fontSize = fC + "mm";
+    cChif.textContent = glyphChiffre(cols.colChif[i]);
+    row.appendChild(cChif);
+
+    gridEl.appendChild(row);
+  }
+}
+
+/* ============================================================
+   GÉNÉRATION PRINCIPALE
+   ============================================================ */
+function generate(){
+  const n         = parseInt(document.getElementById("rowsSlider").value,10);
+  const namePict  = document.getElementById("fontPict").value.trim() || "Pictchou";
+  const nameDe    = document.getElementById("fontDe").value.trim() || "Simpledice";
+  const deCodes   = [...document.getElementById("deCodes").value];
+
+  // Il faut au moins les 6 faces pour composer les paires (7..10 = 6 + reste)
+  if(deCodes.length < 6){
+    alert("Veuillez saisir les 6 codes de faces du dé (ex. ABCDEF).");
+    return;
+  }
+
+  const fontPict = `'${namePict}', monospace`;
+  const fontDe   = `'${nameDe}', monospace`;
+  const cols = buildColumns(n);
+
+  lastData = { cols, n, fontPict, fontDe, deCodes };
+  renderGrid(lastData);
+}
+
+/* ============================================================
+   SLIDERS
+   ============================================================ */
+const rowsSlider = document.getElementById("rowsSlider");
+rowsSlider.addEventListener("input", () => {
+  document.getElementById("rowsVal").textContent = rowsSlider.value;
+});
+function bindSizeSlider(id, valId){
+  const s = document.getElementById(id);
+  s.addEventListener("input", () => {
+    document.getElementById(valId).innerHTML = s.value + "&nbsp;%";
+    if(lastData) renderGrid(lastData);   // re-rendu immédiat, même tirage
+  });
+}
+bindSizeSlider("sizeMain","sizeMainVal");
+bindSizeSlider("sizeDe","sizeDeVal");
+bindSizeSlider("sizeChiffre","sizeChiffreVal");
+
+/* ============================================================
+   BOUTONS
+   ============================================================ */
+document.getElementById("btnGen").addEventListener("click", generate);
+document.getElementById("btnRegen").addEventListener("click", generate);
+document.getElementById("btnPrint").addEventListener("click", () => window.print());
+</script>
+</body>
+</html>

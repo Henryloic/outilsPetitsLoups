@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gabarit vierge – 2 images</title>
+<style>
+  /* ============================================================
+     GABARIT VIERGE (2 IMAGES) — outil générique réutilisable
+     ------------------------------------------------------------
+     Structure d'une fiche A4 :
+       1) Consigne (texte libre, police + taille ajustables)
+       2) Zone graphique double : 2 images indépendantes
+          - chacune importable séparément (PNG)
+          - chacune avec sa propre taille (%)
+          - chacune avec son propre alignement (gauche/centre/droite)
+          - disposition globale : empilées (l'une sous l'autre)
+            ou côte à côte, au choix
+          - si une seule image est chargée : elle occupe 100% de
+            la zone ; si les 2 sont chargées : elles se partagent
+            la zone à parts égales (50/50)
+       3) Pied de page (identique sur tous les outils de la classe)
+     ============================================================ */
+  :root{
+    --bleu:#2563eb;
+    --gris:#f1f5f9;
+    --bord:#cbd5e1;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Arial,sans-serif;
+    background:#e2e8f0;
+    color:#0f172a;
+    display:flex;
+    gap:20px;
+    padding:20px;
+    align-items:flex-start;
+  }
+  /* -------- Panneau de commandes (masqué à l'impression) -------- */
+  .controls{
+    flex:0 0 340px;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 4px 18px rgba(0,0,0,.08);
+    padding:22px;
+    position:sticky;
+    top:20px;
+    max-height:calc(100vh - 40px);
+    overflow-y:auto;
+  }
+  .controls h1{font-size:20px;margin:0 0 4px;}
+  .controls p.sub{margin:0 0 18px;color:#64748b;font-size:13px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-weight:600;font-size:13px;margin-bottom:6px;}
+  .field textarea,
+  .field input[type=text],
+  .field input[type=file]{
+    width:100%;padding:8px;border:1px solid var(--bord);
+    border-radius:8px;font-size:14px;background:#fff;font-family:inherit;
+  }
+  .field textarea{resize:vertical;min-height:60px;}
+  .status{font-size:12px;margin-top:6px;font-weight:600;}
+  .ok{color:#16a34a;}
+  .ko{color:#dc2626;}
+  .buttons{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .buttons button{
+    padding:11px;border:none;border-radius:9px;font-size:14px;
+    font-weight:600;cursor:pointer;color:#fff;transition:.15s;
+  }
+  #btnGen{background:var(--bleu);}
+  #btnPrint{background:#16a34a;}
+  .buttons button:hover{filter:brightness(1.08);}
+  .hint{font-size:12px;color:#64748b;margin-top:14px;line-height:1.4;}
+  /* Sliders */
+  .slider-row{display:flex;align-items:center;gap:10px;}
+  .slider-row input[type=range]{flex:1;accent-color:var(--bleu);}
+  .slider-row .val{font-weight:700;color:var(--bleu);min-width:44px;text-align:right;font-size:13px;}
+  /* Groupes radio (disposition, alignement) */
+  .radio-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .radio-row label{
+    display:flex;align-items:center;gap:6px;font-weight:500;
+    background:var(--gris);padding:8px 10px;border-radius:8px;
+    cursor:pointer;font-size:13px;border:1px solid transparent;flex:1;
+    justify-content:center;
+  }
+  .radio-row input{accent-color:var(--bleu);}
+  /* Bloc "carte" pour distinguer visuellement les 2 images dans le panneau */
+  .image-card{
+    border:1px solid var(--bord);
+    border-radius:10px;
+    padding:14px;
+    margin-bottom:16px;
+    background:#fafbfc;
+  }
+  .image-card h2{font-size:14px;margin:0 0 12px;color:#1e293b;}
+  .image-card .field:last-child{margin-bottom:0;}
+
+  /* ============================================================
+     LA FICHE A4
+     ============================================================ */
+  .preview{flex:1;display:flex;justify-content:center;}
+  .sheet{
+    width:210mm;
+    height:297mm;
+    background:#fff;
+    box-shadow:0 6px 24px rgba(0,0,0,.15);
+    padding:10mm;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  /* --- 1) Consigne : toujours en haut, comme les autres fiches --- */
+  .sheet-header{
+    width:100%;
+    min-height:16mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+  #sheetConsigne{
+    font-weight:700;
+    line-height:1.2;
+    max-width:188mm;
+    white-space:pre-wrap;      /* respecte les retours à la ligne tapés par l'enseignante */
+  }
+  /* --- 2) Zone graphique double : occupe tout l'espace restant --- */
+  #imageZone{
+    width:100%;
+    flex:1;                    /* prend toute la hauteur disponible entre consigne et pied */
+    display:flex;
+    /* flex-direction posé dynamiquement en JS : column (empilé) ou row (côte à côte) */
+    gap:4mm;
+    overflow:hidden;
+    min-height:0;
+  }
+  .img-subzone{
+    flex:1 1 0;                 /* chaque sous-zone chargée se partage l'espace à parts égales */
+    display:flex;
+    align-items:center;
+    /* justify-content posé dynamiquement en JS selon l'alignement choisi */
+    overflow:hidden;
+    min-width:0;
+    min-height:0;
+  }
+  .img-subzone img{
+    display:block;
+    object-fit:contain;        /* jamais déformée : respecte toujours les proportions */
+    max-width:100%;
+    max-height:100%;
+  }
+  .placeholder{
+    color:#94a3b8;font-size:15px;text-align:center;margin:auto;padding:0 20mm;
+  }
+  /* --- 3) Pied de page : identique à tous les outils de la classe --- */
+  .sheet-footer{
+    flex:0 0 auto;
+    padding-top:3mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:3mm;
+    font-size:5mm;
+    font-weight:600;
+    color:#475569;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+  }
+  .sheet-footer svg{flex:0 0 auto;}
+
+  /* ============================================================
+     IMPRESSION : on masque tout sauf la fiche
+     ============================================================ */
+  @media print{
+    @page{ size:A4 portrait; margin:0; }
+    body{background:#fff;padding:0;display:block;}
+    .controls{display:none !important;}
+    .preview{display:block;}
+    .sheet{
+      box-shadow:none;
+      width:210mm;height:297mm;
+      page-break-after:avoid;
+    }
+  }
+</style>
+</head>
+<body>
+  <!-- ================= PANNEAU DE COMMANDES ================= -->
+  <aside class="controls">
+    <h1>🖼️🖼️ Gabarit vierge — 2 images</h1>
+    <p class="sub">Habiller une fiche avec 2 images, une consigne, en 2 clics.</p>
+
+    <!-- ---------- 1) CONSIGNE (texte libre) ---------- -->
+    <div class="field">
+      <label for="consigneText">1. Consigne (texte libre)</label>
+      <textarea id="consigneText" placeholder="Ex. : Observe les 2 images et raconte ce que tu vois.">Consigne : observe les images et raconte ce que tu vois.</textarea>
+    </div>
+    <div class="field">
+      <label for="fontName">2. Police de la consigne</label>
+      <input type="text" id="fontName" value="Script Ecole 2">
+      <p class="hint">Nom d'une police installée sur le PC (par défaut : police système).</p>
+    </div>
+    <div class="field">
+      <label for="sizeConsigne">3. Taille de la consigne</label>
+      <div class="slider-row">
+        <input type="range" id="sizeConsigne" min="10" max="60" step="1" value="24">
+        <span class="val" id="sizeConsigneVal">24&nbsp;pt</span>
+      </div>
+    </div>
+
+    <!-- ---------- DISPOSITION GLOBALE ---------- -->
+    <div class="field">
+      <label>4. Disposition des 2 images</label>
+      <div class="radio-row">
+        <label><input type="radio" name="layout" value="stack" checked> Empilées</label>
+        <label><input type="radio" name="layout" value="side"> Côte à côte</label>
+      </div>
+      <p class="hint">« Empilées » = l'une au-dessus de l'autre. « Côte à côte » = les 2 côte à côte.</p>
+    </div>
+
+    <!-- ---------- IMAGE 1 ---------- -->
+    <div class="image-card">
+      <h2>🖼️ Image 1</h2>
+      <div class="field">
+        <label for="fileImage1">Importer l'image 1 (PNG)</label>
+        <input type="file" id="fileImage1" accept="image/png,image/*">
+        <div class="status" id="statImage1">Aucune image chargée.</div>
+      </div>
+      <div class="field">
+        <label for="sizeImage1">Taille de l'image 1 (% de sa zone)</label>
+        <div class="slider-row">
+          <input type="range" id="sizeImage1" min="30" max="100" step="1" value="100">
+          <span class="val" id="sizeImage1Val">100&nbsp;%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Alignement de l'image 1</label>
+        <div class="radio-row">
+          <label><input type="radio" name="align1" value="left"> Gauche</label>
+          <label><input type="radio" name="align1" value="center" checked> Centré</label>
+          <label><input type="radio" name="align1" value="right"> Droite</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- IMAGE 2 ---------- -->
+    <div class="image-card">
+      <h2>🖼️ Image 2</h2>
+      <div class="field">
+        <label for="fileImage2">Importer l'image 2 (PNG)</label>
+        <input type="file" id="fileImage2" accept="image/png,image/*">
+        <div class="status" id="statImage2">Aucune image chargée.</div>
+      </div>
+      <div class="field">
+        <label for="sizeImage2">Taille de l'image 2 (% de sa zone)</label>
+        <div class="slider-row">
+          <input type="range" id="sizeImage2" min="30" max="100" step="1" value="100">
+          <span class="val" id="sizeImage2Val">100&nbsp;%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Alignement de l'image 2</label>
+        <div class="radio-row">
+          <label><input type="radio" name="align2" value="left"> Gauche</label>
+          <label><input type="radio" name="align2" value="center" checked> Centré</label>
+          <label><input type="radio" name="align2" value="right"> Droite</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button id="btnGen">Générer</button>
+      <button id="btnPrint">Imprimer</button>
+    </div>
+    <p class="hint">
+      Si une seule image est chargée, elle occupe 100 % de la zone. Si les 2 sont
+      chargées, elles se partagent la zone à parts égales. Les sliders et
+      l'alignement s'appliquent instantanément. L'impression masque ce panneau.
+    </p>
+  </aside>
+
+  <!-- ================= APERÇU DE LA FICHE A4 ================= -->
+  <main class="preview">
+    <section class="sheet" id="sheet">
+      <!-- 1) Consigne -->
+      <div class="sheet-header">
+        <div id="sheetConsigne"></div>
+      </div>
+      <!-- 2) Zone graphique double -->
+      <div id="imageZone">
+        <div class="placeholder" id="imgPlaceholder">
+          Importez une ou deux images puis cliquez sur « Générer ».
+        </div>
+      </div>
+      <!-- 3) Pied de page (identique aux autres outils) -->
+      <footer class="sheet-footer">
+        <svg viewBox="0 0 64 64" width="10mm" height="10mm" aria-hidden="true">
+          <!-- Petit loup "sympa" : oreilles, tête grise, museau, yeux, nez -->
+          <polygon points="10,10 22,24 6,26" fill="#94a3b8"/>
+          <polygon points="54,10 42,24 58,26" fill="#94a3b8"/>
+          <polygon points="13,13 21,23 10,24" fill="#e2e8f0"/>
+          <polygon points="51,13 43,23 54,24" fill="#e2e8f0"/>
+          <circle cx="32" cy="34" r="20" fill="#cbd5e1"/>
+          <ellipse cx="32" cy="42" rx="12" ry="10" fill="#f8fafc"/>
+          <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="25" cy="30" r="1" fill="#fff"/>
+          <circle cx="41" cy="30" r="1" fill="#fff"/>
+          <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
+          <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span>Classe des petits loups&nbsp;— Florence Zeghache</span>
+      </footer>
+    </section>
+  </main>
+<script>
+"use strict";
+/* ============================================================
+   ÉTAT DE L'OUTIL
+   - image1Url / image2Url : dataURL de chaque image (ou null)
+   ============================================================ */
+let image1Url = null;
+let image2Url = null;
+const $ = id => document.getElementById(id);
+
+/* Traduit le choix radio (left/center/right) en valeur CSS justify-content */
+function justifyFor(align){
+  if(align === "left")  return "flex-start";
+  if(align === "right") return "flex-end";
+  return "center";
+}
+
+/* ============================================================
+   IMPORT DES IMAGES (PNG)
+   ============================================================ */
+function bindImageInput(inputId, statusId, setUrl){
+  $(inputId).addEventListener("change", e => {
+    const file = e.target.files[0];
+    const statusEl = $(statusId);
+    if(!file) return;
+    if(!file.type.startsWith("image/")){
+      statusEl.className = "status ko";
+      statusEl.textContent = "⚠️ Fichier non reconnu comme image.";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      setUrl(ev.target.result);
+      statusEl.className = "status ok";
+      statusEl.textContent = "✅ Image chargée : " + file.name;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+bindImageInput("fileImage1", "statImage1", url => { image1Url = url; });
+bindImageInput("fileImage2", "statImage2", url => { image2Url = url; });
+
+/* ============================================================
+   RENDU DE LA CONSIGNE (texte, police, taille)
+   ============================================================ */
+function renderConsigne(){
+  const texte = $("consigneText").value.trim() || "Consigne : ...";
+  const font  = $("fontName").value.trim() || "Segoe UI";
+  const sizePt = parseInt($("sizeConsigne").value, 10);
+  const el = $("sheetConsigne");
+  el.textContent = texte;
+  el.style.fontFamily = `'${font}', 'Segoe UI', sans-serif`;
+  el.style.fontSize = sizePt + "pt";
+}
+
+/* ============================================================
+   RENDU DE LA ZONE GRAPHIQUE (1 ou 2 images)
+   ------------------------------------------------------------
+   Règles :
+   - Disposition globale (empilé/côte à côte) pilotée par les
+     radios "layout" -> flex-direction: column | row
+   - Si aucune image : message d'attente.
+   - Si une seule image : sa sous-zone prend 100% de l'espace
+     (flex:1 sur un unique enfant occupe naturellement tout).
+   - Si les 2 images : chaque sous-zone flex:1 -> partage 50/50.
+   - Chaque image garde SA propre taille (%) et SON propre
+     alignement (gauche/centre/droite), sans dépendre de l'autre.
+   ============================================================ */
+function makeSubzone(url, sizePct, align){
+  const sub = document.createElement("div");
+  sub.className = "img-subzone";
+  sub.style.justifyContent = justifyFor(align);
+  const img = document.createElement("img");
+  img.src = url;
+  img.alt = "Image de la fiche";
+  img.style.maxWidth  = sizePct + "%";
+  img.style.maxHeight = sizePct + "%";
+  sub.appendChild(img);
+  return sub;
+}
+
+function renderImages(){
+  const zone = $("imageZone");
+  zone.innerHTML = "";
+
+  if(!image1Url && !image2Url){
+    const ph = document.createElement("div");
+    ph.className = "placeholder";
+    ph.id = "imgPlaceholder";
+    ph.textContent = "Importez une ou deux images puis cliquez sur « Générer ».";
+    zone.appendChild(ph);
+    return;
+  }
+
+  // Disposition globale : empilé (column) ou côte à côte (row)
+  const layout = document.querySelector('input[name=layout]:checked').value;
+  zone.style.flexDirection = (layout === "side") ? "row" : "column";
+
+  if(image1Url){
+    const pct1  = parseInt($("sizeImage1").value, 10);
+    const align1 = document.querySelector('input[name=align1]:checked').value;
+    zone.appendChild(makeSubzone(image1Url, pct1, align1));
+  }
+  if(image2Url){
+    const pct2  = parseInt($("sizeImage2").value, 10);
+    const align2 = document.querySelector('input[name=align2]:checked').value;
+    zone.appendChild(makeSubzone(image2Url, pct2, align2));
+  }
+  // NB : si une seule des deux images est chargée, un seul enfant est
+  // ajouté au conteneur flex -> avec flex:1 il occupe naturellement
+  // 100% de l'espace disponible, sans code particulier à écrire.
+}
+
+/* ============================================================
+   GÉNÉRATION PRINCIPALE
+   ============================================================ */
+function generate(){
+  renderConsigne();
+  renderImages();
+}
+
+/* ============================================================
+   ÉCOUTEURS — mise à jour en temps réel (sliders + radios)
+   ============================================================ */
+$("sizeConsigne").addEventListener("input", () => {
+  $("sizeConsigneVal").textContent = $("sizeConsigne").value + " pt";
+  renderConsigne();
+});
+$("sizeImage1").addEventListener("input", () => {
+  $("sizeImage1Val").innerHTML = $("sizeImage1").value + "&nbsp;%";
+  renderImages();
+});
+$("sizeImage2").addEventListener("input", () => {
+  $("sizeImage2Val").innerHTML = $("sizeImage2").value + "&nbsp;%";
+  renderImages();
+});
+document.querySelectorAll('input[name=layout]').forEach(r => r.addEventListener("change", renderImages));
+document.querySelectorAll('input[name=align1]').forEach(r => r.addEventListener("change", renderImages));
+document.querySelectorAll('input[name=align2]').forEach(r => r.addEventListener("change", renderImages));
+
+/* ============================================================
+   BOUTONS
+   ============================================================ */
+$("btnGen").addEventListener("click", generate);
+$("btnPrint").addEventListener("click", () => window.print());
+
+/* Génère un premier aperçu au chargement de la page (consigne par défaut) */
+generate();
+</script>
+</body>
+</html>

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche – Entourer le bon nombre ou la bonne lettre</title>
+<style>
+  /* ============================================================
+     STYLES GÉNÉRAUX (écran)
+     ============================================================ */
+  :root{
+    --bleu:#2563eb;
+    --gris:#f1f5f9;
+    --bord:#cbd5e1;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Arial,sans-serif;
+    background:#e2e8f0;
+    color:#0f172a;
+    display:flex;
+    gap:20px;
+    padding:20px;
+    align-items:flex-start;
+  }
+  /* -------- Panneau de commandes (masqué à l'impression) -------- */
+  .controls{
+    flex:0 0 330px;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 4px 18px rgba(0,0,0,.08);
+    padding:22px;
+    position:sticky;
+    top:20px;
+    max-height:calc(100vh - 40px);
+    overflow-y:auto;
+  }
+  .controls h1{font-size:20px;margin:0 0 4px;}
+  .controls p.sub{margin:0 0 18px;color:#64748b;font-size:13px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-weight:600;font-size:13px;margin-bottom:6px;}
+  .field input[type=text]{
+    width:100%;padding:8px;border:1px solid var(--bord);
+    border-radius:8px;font-size:14px;background:#fff;
+  }
+  .check-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .check-row label{
+    display:flex;align-items:center;gap:6px;font-weight:500;
+    background:var(--gris);padding:8px 10px;border-radius:8px;
+    cursor:pointer;font-size:13px;border:1px solid transparent;flex:1;
+    justify-content:center;
+  }
+  .check-row input{accent-color:var(--bleu);}
+  .buttons{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .buttons button{
+    padding:11px;border:none;border-radius:9px;font-size:14px;
+    font-weight:600;cursor:pointer;color:#fff;transition:.15s;
+  }
+  #btnGen{background:var(--bleu);}
+  #btnRegen{background:#0891b2;}
+  #btnPrint{background:#16a34a;}
+  .buttons button:hover{filter:brightness(1.08);}
+  .hint{font-size:12px;color:#64748b;margin-top:8px;line-height:1.4;}
+  .warn{background:#fef9c3;border:1px solid #fde047;border-radius:8px;
+    padding:8px 10px;font-size:12px;color:#713f12;margin-top:8px;line-height:1.4;}
+  /* Sliders */
+  .slider-row{display:flex;align-items:center;gap:10px;}
+  .slider-row input[type=range]{flex:1;accent-color:var(--bleu);}
+  .slider-row .val{font-weight:700;color:var(--bleu);min-width:44px;text-align:right;font-size:13px;}
+  /* ============================================================
+     LA FICHE A4
+     ============================================================ */
+  .preview{flex:1;display:flex;justify-content:center;}
+  .sheet{
+    width:210mm;
+    height:297mm;
+    background:#fff;
+    box-shadow:0 6px 24px rgba(0,0,0,.15);
+    padding:10mm;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .sheet-header{
+    width:100%;
+    min-height:16mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+  #sheetConsigne{
+    font-size:5.5mm;
+    font-weight:700;
+    line-height:1.15;
+    max-width:185mm;
+    font-family:'Segoe UI',Arial,sans-serif; /* consigne toujours lisible, police à part */
+  }
+  /* Zone des lignes : répartie sur toute la hauteur disponible */
+  #rows{
+    width:100%;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-around; /* répartition harmonieuse sur la hauteur */
+  }
+  .row{
+    display:flex;
+    align-items:center;
+    width:100%;
+  }
+  .target{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:0.5mm solid #111;
+    border-radius:2mm;
+    background:#fff;
+    font-weight:700;
+    line-height:1;
+  }
+  .sep{flex:0 0 auto;}
+  .list{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between; /* caractères bien espacés pour entourer facilement */
+    min-width:0;
+  }
+  .list span{
+    line-height:1;
+    display:inline-block;
+    text-align:center;
+  }
+  .placeholder{
+    color:#94a3b8;font-size:15px;text-align:center;margin:auto;padding:0 20mm;
+  }
+  /* Pied de page de la fiche */
+  .sheet-footer{
+    flex:0 0 auto;
+    padding-top:3mm;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:3mm;
+    font-size:5mm;
+    font-weight:600;
+    color:#475569;
+    font-family:'Comic Sans MS','Segoe UI',sans-serif;
+  }
+  .sheet-footer svg{flex:0 0 auto;}
+  /* ============================================================
+     IMPRESSION
+     ============================================================ */
+  @media print{
+    @page{ size:A4 portrait; margin:0; }
+    body{background:#fff;padding:0;display:block;}
+    .controls{display:none !important;}
+    .preview{display:block;}
+    .sheet{ box-shadow:none; width:210mm;height:297mm; page-break-after:avoid; }
+  }
+</style>
+</head>
+<body>
+  <!-- ================= PANNEAU DE COMMANDES ================= -->
+  <aside class="controls">
+    <h1>🔎 Entourer le nombre / la lettre</h1>
+    <p class="sub">Chaque ligne : une cible à retrouver dans une liste.</p>
+    <div class="field">
+      <label for="rowsSlider">1. Nombre de lignes</label>
+      <div class="slider-row">
+        <input type="range" id="rowsSlider" min="1" max="10" step="1" value="5">
+        <span class="val" id="rowsVal">5</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>2. Types autorisés (au moins un)</label>
+      <div class="check-row">
+        <label><input type="checkbox" id="chkMin" checked> minuscules</label>
+        <label><input type="checkbox" id="chkMaj" checked> MAJUSCULES</label>
+        <label><input type="checkbox" id="chkNum" checked> chiffres</label>
+      </div>
+      <p class="hint">Chaque ligne tire aléatoirement l'un des types cochés.</p>
+    </div>
+    <div class="field">
+      <label for="fontName">3. Police</label>
+      <input type="text" id="fontName" value="Script Ecole 2">
+      <p class="hint">Par défaut « Script Ecole 2 ». Modifiable si le nom exact installé diffère.</p>
+    </div>
+    <div class="field">
+      <label for="sizeSlider">4. Taille de la police</label>
+      <div class="slider-row">
+        <input type="range" id="sizeSlider" min="35" max="90" step="1" value="60">
+        <span class="val" id="sizeVal">60&nbsp;%</span>
+      </div>
+      <p class="hint">Ajustement en temps réel, sans changer les caractères tirés.</p>
+    </div>
+    <div class="field">
+      <label for="fillSlider">5. Remplissage de la ligne</label>
+      <div class="slider-row">
+        <input type="range" id="fillSlider" min="20" max="100" step="5" value="70">
+        <span class="val" id="fillVal">70&nbsp;%</span>
+      </div>
+      <p class="hint">Estimation approximative du nombre de caractères par ligne.</p>
+    </div>
+    <div class="buttons">
+      <button id="btnGen">Générer</button>
+      <button id="btnRegen">Régénérer</button>
+      <button id="btnPrint">Imprimer</button>
+    </div>
+    <p class="hint">« Régénérer » recalcule de nouvelles cibles et listes. L'impression masque automatiquement ce panneau.</p>
+  </aside>
+  <!-- ================= APERÇU DE LA FICHE A4 ================= -->
+  <main class="preview">
+    <section class="sheet" id="sheet">
+      <div class="sheet-header">
+        <div id="sheetConsigne">Consigne : Entoure les nombres ou les lettres identiques aux modeles.</div>
+      </div>
+      <div id="rows"><div class="placeholder">Réglez vos paramètres, puis cliquez sur « Générer ».</div></div>
+      <!-- Pied de page de la fiche -->
+      <footer class="sheet-footer">
+        <svg viewBox="0 0 64 64" width="10mm" height="10mm" aria-hidden="true">
+          <polygon points="10,10 22,24 6,26" fill="#94a3b8"/>
+          <polygon points="54,10 42,24 58,26" fill="#94a3b8"/>
+          <polygon points="13,13 21,23 10,24" fill="#e2e8f0"/>
+          <polygon points="51,13 43,23 54,24" fill="#e2e8f0"/>
+          <circle cx="32" cy="34" r="20" fill="#cbd5e1"/>
+          <ellipse cx="32" cy="42" rx="12" ry="10" fill="#f8fafc"/>
+          <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
+          <circle cx="25" cy="30" r="1" fill="#fff"/>
+          <circle cx="41" cy="30" r="1" fill="#fff"/>
+          <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
+          <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span>Classe des petits loups&nbsp;— Florence Zeghache</span>
+      </footer>
+    </section>
+  </main>
+<script>
+"use strict";
+/* ============================================================
+   JEUX DE CARACTÈRES
+   ============================================================ */
+const DIGITS = "0123456789".split("");
+const LOWER  = "abcdefghijklmnopqrstuvwxyz".split("");
+const UPPER  = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+/* Mémorise la dernière fiche générée (pour re-rendu par les sliders) */
+let lastRows = null;
+/* ============================================================
+   UTILITAIRES
+   ============================================================ */
+const randInt = n => Math.floor(Math.random() * n);
+const pick    = arr => arr[randInt(arr.length)];
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=randInt(i+1); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+/* ============================================================
+   TYPES ACTIFS (cases cochées)
+   ============================================================ */
+function activeTypes(){
+  const types = [];
+  if(document.getElementById("chkMin").checked) types.push("min");
+  if(document.getElementById("chkMaj").checked) types.push("maj");
+  if(document.getElementById("chkNum").checked) types.push("num");
+  return types;
+}
+function poolFor(type){
+  if(type === "min") return LOWER;
+  if(type === "maj") return UPPER;
+  return DIGITS;
+}
+/* ============================================================
+   CONSIGNE DYNAMIQUE
+   S'adapte selon les types cochés : nombre seul, lettre seule,
+   ou les deux (nombre ET lettre).
+   ============================================================ */
+function updateConsigne(){
+  const hasNum = document.getElementById("chkNum").checked;
+  const hasLet = document.getElementById("chkMin").checked
+              || document.getElementById("chkMaj").checked;
+  let texte;
+  if(hasNum && hasLet){
+    texte = "Consigne : Entoure les nombres ou les lettres identiques aux modeles.";
+  }else if(hasNum){
+    texte = "Consigne : Entoure les nombres identiques aux modeles";
+  }else if(hasLet){
+    texte = "Consigne : Entoure les lettres identiques aux modeles";
+  }else{
+    texte = "Consigne : Entoure les nombres ou les lettres identiques aux modeles.";
+  }
+  document.getElementById("sheetConsigne").textContent = texte;
+}
+/* ============================================================
+   DIMENSIONS (hauteur de ligne, taille de police)
+   ------------------------------------------------------------
+   CORRECTIF : la taille de police est désormais plafonnée
+   (calculée sur une hauteur de ligne "effective" limitée à 20mm).
+   Avant, avec peu de lignes (donc une grande hauteur de ligne),
+   la police devenait énorme (>20-25mm), ce qui ne laissait de la
+   place que pour 2 ou 3 caractères sur la ligne. Le plafond
+   garantit une taille de lettre raisonnable à tout moment, ce qui
+   libère la place nécessaire pour afficher beaucoup plus de
+   caractères par ligne.
+   ============================================================ */
+function computeRowHeight(nbRows){
+  const usableH = 277 - 32;              // A4 - marges(10mm*2) - réserve consigne/pied (~32mm)
+  return usableH / nbRows;
+}
+function fontSizeMm(rowHeight){
+  const factor = parseInt(document.getElementById("sizeSlider").value,10) / 100;
+  const effectiveRowH = Math.min(rowHeight, 20);   // plafond anti-lettres géantes
+  return effectiveRowH * factor;
+}
+/* ============================================================
+   ESTIMATION DU NOMBRE DE CARACTÈRES PAR LIGNE
+   ------------------------------------------------------------
+   CORRECTIF : l'espacement estimé par caractère (slot) était
+   trop généreux (1.7x la taille de police), ce qui sous-estimait
+   fortement la capacité réelle de la ligne. Il est réduit à 0.9x,
+   et le minimum garanti passe de 4 à 8 caractères, pour toujours
+   proposer une liste suffisamment fournie (au moins deux fois
+   plus de caractères qu'auparavant, quel que soit le nombre de
+   lignes choisi, à réglages égaux).
+   ============================================================ */
+function estimateCount(fontSize, targetBoxWidth){
+  const usableW = 190;                          // largeur utile (mm)
+  const gapBig  = 6;                            // écart cible <-> liste
+  const listW   = usableW - targetBoxWidth - gapBig;
+  const slot    = fontSize * 0.9;               // caractère + espace pour entourer (resserré)
+  const maxChars = Math.max(2, Math.floor(listW / slot));
+  const percent  = parseInt(document.getElementById("fillSlider").value,10) / 100;
+  let n = Math.round(maxChars * percent);
+  // Minimum garanti relevé (8 au lieu de 4) pour des lignes bien remplies
+  const floor = Math.min(8, maxChars);
+  n = Math.max(floor, Math.min(n, maxChars));
+  n = Math.max(2, n);                            // filet de sécurité absolu
+  return n;
+}
+/* ============================================================
+   CONSTRUCTION D'UNE LIGNE
+   Cible aléatoire + liste (2 occurrences cible + distracteurs même type)
+   ============================================================ */
+function buildLine(type){
+  const pool = poolFor(type);
+  const cible = pick(pool);
+  return { type, cible };
+}
+/* ------------------------------------------------------------
+   CORRECTIF : les distracteurs sont désormais tirés dans le pool
+   EXCLUANT la cible. Avant, la cible pouvait être repiochée au
+   hasard parmi les distracteurs, ce qui faisait parfois apparaître
+   la lettre/le chiffre à trouver 3, 4 fois ou plus (exercice trop
+   facile). Désormais la cible apparaît TOUJOURS exactement 2 fois,
+   ni plus ni moins.
+   ------------------------------------------------------------ */
+function buildList(line, nbChars){
+  const pool = poolFor(line.type).filter(ch => ch !== line.cible);
+  const chars = [ line.cible, line.cible ];              // 2 occurrences garanties, exactement
+  for(let i=2;i<nbChars;i++) chars.push(pick(pool));     // distracteurs, jamais égaux à la cible
+  return shuffle(chars);
+}
+/* ============================================================
+   RENDU DE LA FICHE
+   ============================================================ */
+function renderSheet(data){
+  const { lines, nbRows } = data;
+  const rowH = computeRowHeight(nbRows);
+  const fSize = fontSizeMm(rowH);
+  const boxSide = Math.min(rowH * 0.82, fSize * 2.0);
+  const rowsEl = document.getElementById("rows");
+  rowsEl.innerHTML = "";
+  const font = `'${document.getElementById("fontName").value.trim() || "Script Ecole 2"}', cursive`;
+  for(const line of lines){
+    const row = document.createElement("div");
+    row.className = "row";
+    row.style.height = rowH + "mm";
+    /* --- Cible (gauche) --- */
+    const t = document.createElement("div");
+    t.className = "target";
+    t.style.width  = boxSide + "mm";
+    t.style.height = boxSide + "mm";
+    t.style.fontSize = (boxSide * 0.6) + "mm";
+    t.style.fontFamily = font;
+    t.textContent = line.cible;
+    row.appendChild(t);
+    /* --- Séparateur --- */
+    const sep = document.createElement("div");
+    sep.className = "sep";
+    sep.style.width = "6mm";
+    row.appendChild(sep);
+    /* --- Liste (droite) --- */
+    const list = document.createElement("div");
+    list.className = "list";
+    list.style.fontFamily = font;
+    for(const ch of line.chars){
+      const s = document.createElement("span");
+      s.style.fontSize = fSize + "mm";
+      s.textContent = ch;
+      list.appendChild(s);
+    }
+    row.appendChild(list);
+    rowsEl.appendChild(row);
+  }
+}
+/* ============================================================
+   GÉNÉRATION PRINCIPALE
+   ============================================================ */
+function generate(){
+  const types = activeTypes();
+  if(types.length === 0){
+    alert("Veuillez cocher au moins un type (minuscules, MAJUSCULES ou chiffres).");
+    return;
+  }
+  updateConsigne();   // adapte le texte de la consigne aux types cochés
+  const nbRows = parseInt(document.getElementById("rowsSlider").value,10);
+  const rowH   = computeRowHeight(nbRows);
+  const fSize  = fontSizeMm(rowH);
+  const boxSide = Math.min(rowH * 0.82, fSize * 2.0);
+  const lines = [];
+  for(let r=0;r<nbRows;r++){
+    const type = pick(types);
+    const line = buildLine(type);
+    const nbChars = estimateCount(fSize, boxSide);
+    line.chars = buildList(line, nbChars);
+    lines.push(line);
+  }
+  lastRows = { lines, nbRows };
+  renderSheet(lastRows);
+}
+/* ============================================================
+   CASES À COCHER (types) — met à jour la consigne immédiatement
+   ============================================================ */
+["chkMin","chkMaj","chkNum"].forEach(id => {
+  document.getElementById(id).addEventListener("change", updateConsigne);
+});
+updateConsigne(); // consigne correcte dès le chargement de la page
+/* ============================================================
+   SLIDERS
+   ============================================================ */
+const rowsSlider = document.getElementById("rowsSlider");
+rowsSlider.addEventListener("input", () => {
+  document.getElementById("rowsVal").textContent = rowsSlider.value;
+});
+const sizeSlider = document.getElementById("sizeSlider");
+sizeSlider.addEventListener("input", () => {
+  document.getElementById("sizeVal").innerHTML = sizeSlider.value + "&nbsp;%";
+  if(lastRows) renderSheet(lastRows);     // re-rendu immédiat, même tirage
+});
+const fillSlider = document.getElementById("fillSlider");
+fillSlider.addEventListener("input", () => {
+  document.getElementById("fillVal").innerHTML = fillSlider.value + "&nbsp;%";
+  // Le remplissage change le nombre de caractères -> nécessite une nouvelle génération
+});
+/* ============================================================
+   BOUTONS
+   ============================================================ */
+document.getElementById("btnGen").addEventListener("click", generate);
+document.getElementById("btnRegen").addEventListener("click", generate);
+document.getElementById("btnPrint").addEventListener("click", () => window.print());
+</script>
+</body>
+</html>
