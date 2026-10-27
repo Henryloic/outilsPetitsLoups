@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Fiches Wooden Man</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: #f2f2f2;
+  }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 20px;
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    position: sticky;
+    top: 0;
+  }
+
+  .toolbar input[type="text"] { width: 280px; }
+  .toolbar input[type="number"] { width: 60px; }
+  .toolbar button { padding: 6px 14px; cursor: pointer; }
+
+  .sheet {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 400px);
+    gap: 20px;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .card {
+    background: #fff;
+    border: 2px solid #000;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .card-title {
+    margin: 0;
+    padding: 8px;
+    text-align: center;
+    font-size: 16px;
+    border-bottom: 2px solid #000;
+  }
+
+  .card canvas { display: block; }
+
+  @media print {
+    .toolbar { display: none; }
+    body { background: #fff; }
+    .sheet { gap: 8px; padding: 0; }
+    .card { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+  <header class="toolbar">
+    <label>Titre
+      <input id="title" type="text" value="FLORENCE : Classe des petits loups">
+    </label>
+    <label>Nombre de fiches
+      <input id="count" type="number" min="1" max="12" value="6">
+    </label>
+    <label><input id="grid" type="checkbox" checked> Grille</label>
+    <label><input id="joints" type="checkbox" checked> Articulations</label>
+    <button id="generate">Générer (Espace)</button>
+    <button id="download">Télécharger les PNG</button>
+    <button id="print">Imprimer</button>
+  </header>
+
+  <main id="sheet" class="sheet"></main>
+
+<script>
+const WIDTH = 400, HEIGHT = 500, GRID_SIZE = 25;
+const CENTER_X = WIDTH / 2, HEAD_Y = 140, TRUNK_LENGTH = 100;
+const L_ARM = 60, L_FOREARM = 50, L_THIGH = 70, L_SHIN = 60, L_FOOT = 20;
+
+const rand = (a, b) => a + Math.random() * (b - a);
+
+function segment(start, length, angleDeg) {
+  const rad = angleDeg * Math.PI / 180;
+  return [
+    Math.trunc(start[0] + length * Math.cos(rad)),
+    Math.trunc(start[1] + length * Math.sin(rad)),
+  ];
+}
+
+function line(ctx, a, b, color = "#000", width = 4) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.beginPath();
+  ctx.moveTo(a[0], a[1]);
+  ctx.lineTo(b[0], b[1]);
+  ctx.stroke();
+}
+
+function circle(ctx, p, r, { fill, stroke, width = 2 }) {
+  ctx.beginPath();
+  ctx.arc(p[0], p[1], r, 0, Math.PI * 2);
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.stroke(); }
+}
+
+function drawGrid(ctx) {
+  for (let x = 0; x < WIDTH; x += GRID_SIZE) line(ctx, [x, 0], [x, HEIGHT], "#dcdcdc", 1);
+  for (let y = 0; y < HEIGHT; y += GRID_SIZE) line(ctx, [0, y], [WIDTH, y], "#dcdcdc", 1);
+}
+
+function drawStickman(ctx, { grid, joints }) {
+  const joint = p => { if (joints) circle(ctx, p, 6, { fill: "#f00" }); };
+
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  if (grid) drawGrid(ctx);
+
+  circle(ctx, [CENTER_X, HEAD_Y], 28, { stroke: "#000" });
+
+  const trunkStart = [CENTER_X, HEAD_Y + 28];
+  const trunkEnd = [CENTER_X, trunkStart[1] + TRUNK_LENGTH];
+  line(ctx, trunkStart, trunkEnd);
+
+  // Bras
+  const shoulder = [trunkStart[0], trunkStart[1] + 20];
+  joint(shoulder);
+  for (const side of [-1, 1]) {
+    const shoulderAngle = side === 1 ? rand(-80, 30) : rand(150, 260);
+    const elbow = segment(shoulder, L_ARM, shoulderAngle);
+    line(ctx, shoulder, elbow);
+    joint(elbow);
+    const hand = segment(elbow, L_FOREARM, shoulderAngle + rand(-60, 60));
+    line(ctx, elbow, hand);
+  }
+
+  // Jambes
+  const hip = trunkEnd;
+  joint(hip);
+  for (const side of [-1, 1]) {
+    const hipAngle = side === 1 ? rand(10, 80) : rand(100, 190);
+    const knee = segment(hip, L_THIGH, hipAngle);
+    line(ctx, hip, knee);
+    joint(knee);
+    const kneeAngle = hipAngle + rand(-60, 0);
+    const ankle = segment(knee, L_SHIN, kneeAngle);
+    line(ctx, knee, ankle);
+    joint(ankle);
+    const foot = segment(ankle, L_FOOT, kneeAngle + rand(0, 90));
+    line(ctx, ankle, foot);
+  }
+}
+
+const $ = id => document.getElementById(id);
+
+function generate() {
+  const sheet = $("sheet");
+  sheet.innerHTML = "";
+  const count = Math.max(1, Math.min(12, parseInt($("count").value, 10) || 1));
+  for (let i = 0; i < count; i++) {
+    const card = document.createElement("article");
+    card.className = "card";
+    const h = document.createElement("h2");
+    h.className = "card-title";
+    h.textContent = $("title").value;
+    const canvas = document.createElement("canvas");
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+    drawStickman(canvas.getContext("2d"), {
+      grid: $("grid").checked,
+      joints: $("joints").checked,
+    });
+    card.append(h, canvas);
+    sheet.append(card);
+  }
+}
+
+function download() {
+  document.querySelectorAll(".card canvas").forEach((canvas, i) => {
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = `fiche_${String(i).padStart(3, "0")}.png`;
+    a.click();
+  });
+}
+
+$("generate").addEventListener("click", generate);
+$("download").addEventListener("click", download);
+$("print").addEventListener("click", () => window.print());
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" && !/INPUT|TEXTAREA/.test(e.target.tagName)) {
+    e.preventDefault();
+    generate();
+  }
+});
+
+generate();
+</script>
+</body>
+</html>
