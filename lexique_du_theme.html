@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lexique du thème</title>
+<style>
+  :root{--bleu:#2563eb;--bord:#cbd5e1;--accent:#ff9800;}
+  *{box-sizing:border-box;}
+  body{margin:0;padding:20px;display:flex;align-items:flex-start;gap:20px;font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#e2e8f0;}
+  .controls{flex:0 0 340px;padding:22px;background:#fff;border-radius:14px;box-shadow:0 4px 18px #00000014;position:sticky;top:20px;max-height:calc(100vh - 40px);overflow:auto;}
+  .back{font-size:13px;color:var(--bleu);}
+  h1{font-size:20px;margin:16px 0 20px;}
+  h2{font-size:13px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--bord);}
+  .field{margin-bottom:16px;}
+  .field>label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;}
+  input[type=text],input[type=file]{width:100%;padding:8px;border:1px solid var(--bord);border-radius:8px;font:inherit;font-size:14px;background:#fff;}
+  input[type=file]{font-size:12px;}
+  .slider-row{display:flex;align-items:center;gap:10px;}
+  input[type=range]{flex:1;min-width:0;accent-color:var(--bleu);}
+  output{min-width:42px;text-align:right;font-size:13px;font-weight:700;color:var(--bleu);}
+  input[type=color]{width:48px;height:32px;padding:2px;border:1px solid var(--bord);border-radius:4px;background:white;}
+  button{font:inherit;font-size:13px;cursor:pointer;border:1px solid var(--bord);border-radius:6px;padding:8px 10px;background:#f1f5f9;color:#0f172a;}
+  button:hover{filter:brightness(.96);}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  .selection-actions{display:flex;gap:8px;margin:10px 0;}
+  .selection-actions button{flex:1;}
+  #printButton{width:100%;padding:12px;color:#fff;background:#16a34a;border:0;font-weight:700;margin-top:12px;}
+  .status{font-size:12px;line-height:1.5;margin:8px 0;color:#475569;}
+  #warnings{color:#b45309;}
+  #warnings:empty{display:none;}
+  .image-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;max-height:300px;overflow:auto;}
+  .image-choice{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border:1px solid var(--bord);border-radius:6px;cursor:pointer;min-width:0;background:#fff;}
+  .image-choice:has(input:checked){border-color:var(--bleu);background:#eff6ff;}
+  .image-choice input{position:absolute;top:3px;left:3px;accent-color:var(--bleu);}
+  .image-choice img{width:100%;height:52px;object-fit:contain;}
+  .image-choice span{width:100%;font-size:10px;overflow-wrap:anywhere;text-align:center;line-height:1.2;}
+  .preview{flex:1;min-width:0;overflow:auto;padding:0 4px 20px;}
+  .sheet{width:210mm;height:297mm;padding:10mm;display:flex;flex-direction:column;background:#fff;box-shadow:0 6px 24px #00000026;overflow:hidden;margin:0 auto;}
+  .sheet-header{flex:none;text-align:center;}
+  .sheet-heading{font-size:19pt;line-height:1.2;font-weight:800;margin:0 0 5mm;letter-spacing:0;}
+  .theme-band{margin:0;padding:2.5mm 2mm;background:var(--accent);border:.3mm solid #111;font-size:15pt;line-height:1.2;font-weight:700;overflow-wrap:anywhere;}
+  .lexicon-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));width:100%;flex:none;border-top:.3mm solid #111;border-left:.3mm solid #111;}
+  .lexicon-cell{margin:0;min-width:0;aspect-ratio:1;display:flex;flex-direction:column;gap:1mm;padding:1.6mm;border-right:.3mm solid #111;border-bottom:.3mm solid #111;overflow:hidden;}
+  .photo-area{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;}
+  .photo-area img{display:block;width:100%;height:100%;object-fit:contain;}
+  .word{flex:0 0 24%;min-height:0;display:flex;align-items:center;justify-content:center;text-align:center;font-family:Arial,sans-serif;font-weight:600;line-height:1.05;overflow-wrap:anywhere;overflow:hidden;}
+  .word span{display:block;max-width:100%;}
+  .sheet-footer{flex:0 0 auto;margin-top:auto;padding-top:3mm;display:flex;align-items:center;justify-content:center;gap:3mm;font-size:5mm;font-weight:600;color:#475569;font-family:'Comic Sans MS','Segoe UI',sans-serif;}
+  .sheet-footer svg{flex:0 0 auto;}
+  @media(max-width:700px){body{display:block;padding:12px;}.controls{position:static;max-height:none;width:100%;margin-bottom:16px;}.preview{padding:0 0 12px;}.sheet{margin:0;}}
+  @page{size:A4 portrait;margin:0;}
+  @media print{
+    html,body{margin:0;padding:0;background:white;display:block;}
+    .controls{display:none!important;}
+    .preview{margin:0;padding:0;overflow:visible;}
+    .sheet{margin:0;box-shadow:none;break-inside:avoid;print-color-adjust:exact;-webkit-print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+<aside class="controls">
+  <a class="back" href="index.html">Retour aux activités</a>
+  <h1>Lexique du thème</h1>
+  <div class="field">
+    <label for="theme">Thème</label>
+    <input id="theme" type="text" value="Automne">
+  </div>
+  <div class="field">
+    <label for="heading">Titre de la fiche</label>
+    <input id="heading" type="text" value="LES MOTS QUE NOUS AVONS APPRIS">
+  </div>
+  <div class="field">
+    <label for="bandColor">Couleur du bandeau</label>
+    <input id="bandColor" type="color" value="#ff9800">
+  </div>
+  <h2>Grille</h2>
+  <div class="field">
+    <label for="rows">Lignes</label>
+    <div class="slider-row"><input id="rows" type="range" min="1" max="10" value="6"><output for="rows" id="rowsValue">6</output></div>
+  </div>
+  <div class="field">
+    <label for="columns">Colonnes</label>
+    <div class="slider-row"><input id="columns" type="range" min="1" max="10" value="6"><output for="columns" id="columnsValue">6</output></div>
+  </div>
+  <div class="field">
+    <label for="fontSize">Taille des mots</label>
+    <div class="slider-row"><input id="fontSize" type="range" min="6" max="24" value="10"><output for="fontSize" id="fontSizeValue">10 pt</output></div>
+  </div>
+  <h2>Photos</h2>
+  <div class="field">
+    <button id="chooseFolder" type="button">Choisir un dossier</button>
+    <input id="folderInput" type="file" accept="image/*" webkitdirectory multiple hidden aria-label="Dossier des photos">
+  </div>
+  <div class="selection-actions">
+    <button id="selectAll" type="button">Tout sélectionner</button>
+    <button id="selectNone" type="button">Tout désélectionner</button>
+  </div>
+  <div id="imageList" class="image-list" aria-label="Sélection des photos"></div>
+  <p id="selectionStatus" class="status" role="status" aria-live="polite"></p>
+  <button id="insertButton" type="button" disabled>Insérer</button>
+  <button id="clearImages" type="button">Vider les images</button>
+  <p id="warnings" class="status" role="status" aria-live="polite"></p>
+  <button id="printButton" type="button" disabled>Imprimer / Enregistrer en PDF</button>
+</aside>
+<main class="preview" aria-label="Aperçu de la fiche A4">
+  <article class="sheet" id="sheet">
+    <header class="sheet-header">
+      <h2 class="sheet-heading" id="sheetHeading"></h2>
+      <p class="theme-band" id="themeBand"></p>
+    </header>
+    <div class="lexicon-grid" id="grid"></div>
+    <footer class="sheet-footer" id="sheetFooter">
+      <svg viewBox="0 0 64 64" width="10mm" height="10mm" aria-hidden="true">
+        <polygon points="10,10 22,24 6,26" fill="#94a3b8"/>
+        <polygon points="54,10 42,24 58,26" fill="#94a3b8"/>
+        <polygon points="13,13 21,23 10,24" fill="#e2e8f0"/>
+        <polygon points="51,13 43,23 54,24" fill="#e2e8f0"/>
+        <circle cx="32" cy="34" r="20" fill="#cbd5e1"/>
+        <ellipse cx="32" cy="42" rx="12" ry="10" fill="#f8fafc"/>
+        <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
+        <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
+        <circle cx="25" cy="30" r="1" fill="#fff"/>
+        <circle cx="41" cy="30" r="1" fill="#fff"/>
+        <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
+        <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      </svg>
+      <span>Classe des petits loups&nbsp;— Florence Zeghache</span>
+    </footer>
+  </article>
+</main>
+<script>
+  const byId = id => document.getElementById(id);
+  const images = [];
+  let insertedImages = [];
+  const collator = new Intl.Collator('fr', {numeric:true, sensitivity:'base'});
+  let nextId = 0;
+  let renderVersion = 0;
+
+  function fileLabel(name) {
+    return name.replace(/\.[^.]+$/, '').toLocaleUpperCase('fr-FR');
+  }
+
+  function renderChoices() {
+    const fragment = document.createDocumentFragment();
+    images.forEach(image => {
+      const label = document.createElement('label');
+      label.className = 'image-choice';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = image.selected;
+      checkbox.setAttribute('aria-label', image.label);
+      checkbox.addEventListener('change', () => {
+        image.selected = checkbox.checked;
+        updateSelection();
+      });
+      const thumbnail = document.createElement('img');
+      thumbnail.src = image.url;
+      thumbnail.alt = '';
+      thumbnail.loading = 'lazy';
+      const name = document.createElement('span');
+      name.textContent = image.label;
+      label.append(checkbox, thumbnail, name);
+      fragment.append(label);
+    });
+    byId('imageList').replaceChildren(fragment);
+    updateSelection();
+  }
+
+  function updateSelection() {
+    const count = images.filter(image => image.selected).length;
+    const capacity = Number(byId('rows').value) * Number(byId('columns').value);
+    byId('selectionStatus').textContent = `${count} photo(s) sélectionnée(s) sur ${images.length} · ${insertedImages.length} insérée(s) · ${capacity} cases`;
+    byId('insertButton').disabled = count === 0;
+  }
+
+  function importImages(files) {
+    images.filter(image => !insertedImages.includes(image)).forEach(image => URL.revokeObjectURL(image.url));
+    images.length = 0;
+    Array.from(files).filter(file => file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(file.name))
+      .sort((first, second) => collator.compare(first.webkitRelativePath || first.name, second.webkitRelativePath || second.name))
+      .forEach(file => {
+        const key = `${file.webkitRelativePath || file.name}:${file.size}:${file.lastModified}`;
+        if (images.some(image => image.key === key)) return;
+        images.push({id:nextId++, key, label:fileLabel(file.name), url:URL.createObjectURL(file), selected:true, failed:false});
+      });
+    renderChoices();
+  }
+
+  function fitWords() {
+    const requested = Number(byId('fontSize').value);
+    byId('grid').querySelectorAll('.word').forEach(word => {
+      const text = word.firstElementChild;
+      let size = requested;
+      word.style.fontSize = `${size}pt`;
+      while (size > 4 && (text.scrollWidth > word.clientWidth || text.scrollHeight > word.clientHeight)) {
+        size = Math.max(4, size - .25);
+        word.style.fontSize = `${size}pt`;
+      }
+    });
+  }
+
+  function validateSheet() {
+    const selected = insertedImages;
+    const capacity = Number(byId('rows').value) * Number(byId('columns').value);
+    const sheet = byId('sheet');
+    const bottom = sheet.getBoundingClientRect().bottom - parseFloat(getComputedStyle(sheet).paddingBottom);
+    const overflowing = byId('sheetFooter').getBoundingClientRect().bottom > bottom + 1;
+    const warnings = [];
+    if (selected.length > capacity) warnings.push(`${selected.length - capacity} photo(s) en trop : modifiez la sélection puis cliquez sur Insérer, ou augmentez la grille.`);
+    if (overflowing) warnings.push('La grille dépasse la page A4 : réduisez le nombre de lignes ou augmentez le nombre de colonnes.');
+    if (selected.some(image => image.failed)) warnings.push('Une image ne peut pas être affichée : retirez-la de la sélection puis cliquez sur Insérer.');
+    byId('warnings').textContent = warnings.join(' ');
+    updateSelection();
+    byId('printButton').disabled = warnings.length > 0 || selected.length === 0;
+  }
+
+  function renderSheet() {
+    const version = ++renderVersion;
+    const rows = Number(byId('rows').value);
+    const columns = Number(byId('columns').value);
+    byId('rowsValue').value = rows;
+    byId('columnsValue').value = columns;
+    byId('fontSizeValue').value = `${byId('fontSize').value} pt`;
+    byId('sheetHeading').textContent = byId('heading').value;
+    byId('themeBand').textContent = `Lexique du thème : ${byId('theme').value}`;
+    byId('sheet').style.setProperty('--accent', byId('bandColor').value);
+    byId('grid').style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
+    const selected = insertedImages;
+    const fragment = document.createDocumentFragment();
+    const ready = [];
+    for (let index = 0; index < rows * columns; index++) {
+      const cell = document.createElement('figure');
+      cell.className = 'lexicon-cell';
+      const area = document.createElement('div');
+      area.className = 'photo-area';
+      const word = document.createElement('figcaption');
+      word.className = 'word';
+      const text = document.createElement('span');
+      word.append(text);
+      if (selected[index]) {
+        const image = selected[index];
+        const photo = document.createElement('img');
+        photo.alt = image.label;
+        ready.push(new Promise(resolve => {
+          photo.onload = () => {image.failed = false; resolve();};
+          photo.onerror = () => {image.failed = true; resolve();};
+        }));
+        photo.src = image.url;
+        area.append(photo);
+        text.textContent = image.label;
+      }
+      cell.append(area, word);
+      fragment.append(cell);
+    }
+    byId('grid').replaceChildren(fragment);
+    fitWords();
+    validateSheet();
+    if (ready.length) {
+      byId('printButton').disabled = true;
+      Promise.all(ready).then(() => {if (version === renderVersion) validateSheet();});
+    }
+  }
+
+  ['theme', 'heading', 'bandColor', 'rows', 'columns', 'fontSize'].forEach(id => byId(id).addEventListener('input', renderSheet));
+  byId('chooseFolder').addEventListener('click', () => byId('folderInput').click());
+  byId('folderInput').addEventListener('change', event => {
+    if (!event.target.files.length) return;
+    importImages(event.target.files);
+    event.target.value = '';
+  });
+  byId('insertButton').addEventListener('click', () => {
+    insertedImages.filter(image => !images.includes(image)).forEach(image => URL.revokeObjectURL(image.url));
+    insertedImages = images.filter(image => image.selected);
+    renderSheet();
+  });
+  function selectImages(selected) {
+    images.forEach(image => {image.selected = selected;});
+    renderChoices();
+  }
+  byId('selectAll').addEventListener('click', () => selectImages(true));
+  byId('selectNone').addEventListener('click', () => selectImages(false));
+  byId('clearImages').addEventListener('click', () => {
+    new Set([...images, ...insertedImages]).forEach(image => URL.revokeObjectURL(image.url));
+    images.length = 0;
+    insertedImages = [];
+    renderChoices();
+    renderSheet();
+  });
+  byId('printButton').addEventListener('click', () => window.print());
+  window.addEventListener('beforeprint', () => {fitWords(); validateSheet();});
+  renderSheet();
+</script>
+</body>
+</html>
