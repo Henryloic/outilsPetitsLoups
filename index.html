@@ -40,9 +40,10 @@
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.18);
     }
-    .wolf-logo svg {
+    .wolf-logo img {
       width: 58px;
       height: 58px;
+      object-fit: contain;
     }
     .header h1 {
       margin: 0;
@@ -149,7 +150,8 @@
       font-weight: 600;
       text-align: center;
     }
-    .footer svg {
+    .footer img {
+      object-fit: contain;
       width: 40px;
       height: 40px;
       flex: 0 0 auto;
@@ -174,20 +176,7 @@
 <body>
   <header class="header">
     <div class="wolf-logo" aria-hidden="true">
-      <svg viewBox="0 0 64 64">
-        <polygon points="10,10 22,24 6,26" fill="#cbd5e1"/>
-        <polygon points="54,10 42,24 58,26" fill="#cbd5e1"/>
-        <polygon points="13,13 21,23 10,24" fill="#ffffff"/>
-        <polygon points="51,13 43,23 54,24" fill="#ffffff"/>
-        <circle cx="32" cy="34" r="20" fill="#e2e8f0"/>
-        <ellipse cx="32" cy="42" rx="12" ry="10" fill="#ffffff"/>
-        <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
-        <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
-        <circle cx="25" cy="30" r="1" fill="#ffffff"/>
-        <circle cx="41" cy="30" r="1" fill="#ffffff"/>
-        <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
-        <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-      </svg>
+      <img src="loup.png" alt="" width="58" height="58">
     </div>
     <h1>Boîte à outils pédagogiques</h1>
     <p>Classe des petits loups · Florence Zeghache</p>
@@ -270,18 +259,7 @@
     </section>
   </main>
   <footer class="footer">
-    <svg viewBox="0 0 64 64" aria-hidden="true">
-      <polygon points="10,10 22,24 6,26" fill="#94a3b8"/>
-      <polygon points="54,10 42,24 58,26" fill="#94a3b8"/>
-      <polygon points="13,13 21,23 10,24" fill="#e2e8f0"/>
-      <polygon points="51,13 43,23 54,24" fill="#e2e8f0"/>
-      <circle cx="32" cy="34" r="20" fill="#cbd5e1"/>
-      <ellipse cx="32" cy="42" rx="12" ry="10" fill="#f8fafc"/>
-      <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
-      <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
-      <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
-      <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-    </svg>
+    <img src="loup.png" alt="" width="40" height="40">
     <span>Classe des petits loups · Florence Zeghache</span>
   </footer>
 </body>

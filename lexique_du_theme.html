@@ -47,7 +47,7 @@
   .word{flex:0 0 24%;min-height:0;display:flex;align-items:center;justify-content:center;text-align:center;font-family:Arial,sans-serif;font-weight:600;line-height:1.05;overflow-wrap:anywhere;overflow:hidden;}
   .word span{display:block;max-width:100%;}
   .sheet-footer{flex:0 0 auto;margin-top:auto;padding-top:3mm;display:flex;align-items:center;justify-content:center;gap:3mm;font-size:5mm;font-weight:600;color:#475569;font-family:'Comic Sans MS','Segoe UI',sans-serif;}
-  .sheet-footer svg{flex:0 0 auto;}
+  .sheet-footer img{flex:0 0 auto;width:10mm;height:10mm;object-fit:contain;}
   @media(max-width:700px){body{display:block;padding:12px;}.controls{position:static;max-height:none;width:100%;margin-bottom:16px;}.preview{padding:0 0 12px;}.sheet{margin:0;}}
   @page{size:A4 portrait;margin:0;}
   @media print{
@@ -111,20 +111,7 @@
     </header>
     <div class="lexicon-grid" id="grid"></div>
     <footer class="sheet-footer" id="sheetFooter">
-      <svg viewBox="0 0 64 64" width="10mm" height="10mm" aria-hidden="true">
-        <polygon points="10,10 22,24 6,26" fill="#94a3b8"/>
-        <polygon points="54,10 42,24 58,26" fill="#94a3b8"/>
-        <polygon points="13,13 21,23 10,24" fill="#e2e8f0"/>
-        <polygon points="51,13 43,23 54,24" fill="#e2e8f0"/>
-        <circle cx="32" cy="34" r="20" fill="#cbd5e1"/>
-        <ellipse cx="32" cy="42" rx="12" ry="10" fill="#f8fafc"/>
-        <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
-        <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
-        <circle cx="25" cy="30" r="1" fill="#fff"/>
-        <circle cx="41" cy="30" r="1" fill="#fff"/>
-        <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
-        <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-      </svg>
+      <img src="loup.png" alt="" width="38" height="38">
       <span>Classe des petits loups&nbsp;— Florence Zeghache</span>
     </footer>
   </article>

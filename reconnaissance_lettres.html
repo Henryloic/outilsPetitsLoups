@@ -126,7 +126,7 @@
     color:#475569;
     font-family:'Comic Sans MS','Segoe UI',sans-serif;
   }
-  .sheet-footer svg{flex:0 0 auto;}
+  .sheet-footer img{flex:0 0 auto;width:10mm;height:10mm;object-fit:contain;}
 
   /* ============================================================
      IMPRESSION : on masque tout sauf la fiche
@@ -234,21 +234,7 @@
 
       <!-- Pied de page de la fiche -->
       <footer class="sheet-footer">
-        <svg viewBox="0 0 64 64" width="10mm" height="10mm" aria-hidden="true">
-          <!-- Petit loup "sympa" : oreilles, tête grise, museau, yeux, nez -->
-          <polygon points="10,10 22,24 6,26" fill="#94a3b8"/>
-          <polygon points="54,10 42,24 58,26" fill="#94a3b8"/>
-          <polygon points="13,13 21,23 10,24" fill="#e2e8f0"/>
-          <polygon points="51,13 43,23 54,24" fill="#e2e8f0"/>
-          <circle cx="32" cy="34" r="20" fill="#cbd5e1"/>
-          <ellipse cx="32" cy="42" rx="12" ry="10" fill="#f8fafc"/>
-          <circle cx="24" cy="31" r="3.2" fill="#1e293b"/>
-          <circle cx="40" cy="31" r="3.2" fill="#1e293b"/>
-          <circle cx="25" cy="30" r="1" fill="#fff"/>
-          <circle cx="41" cy="30" r="1" fill="#fff"/>
-          <ellipse cx="32" cy="40" rx="4" ry="3" fill="#1e293b"/>
-          <path d="M28 45 Q32 49 36 45" stroke="#1e293b" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-        </svg>
+        <img src="loup.png" alt="" width="38" height="38">
         <span>Classe des petits loups&nbsp;— Florence Zeghache</span>
       </footer>
     </section>
